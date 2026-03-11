@@ -1,0 +1,906 @@
+/* =========================================================
+   GLOBAL (IMPORTANT FIX)
+   - Desktop: no page scroll
+   - Mobile: allow page scroll
+   ========================================================= */
+
+html, body {
+  margin: 0;
+  background: #f3f7ff;
+}
+
+/* Default: allow scroll (mobile + general) */
+html, body, #root {
+  height: auto;
+  overflow: auto;
+}
+
+/* Desktop only: lock page scroll */
+@media (min-width: 992px) {
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+/* ===== App layout ===== */
+.ui-app {
+  display: flex;
+  background: #f3f7ff;
+}
+
+/* Desktop: fixed height app */
+@media (min-width: 992px) {
+  .ui-app {
+    height: 100vh;
+  }
+}
+
+/* Mobile: allow page to grow */
+@media (max-width: 991px) {
+  .ui-app {
+    min-height: 100vh;
+  }
+}
+
+/* Left column */
+.ui-sidebar-shell {
+  width: 320px;
+  background: #f3f7ff;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+@media (min-width: 992px) {
+  .ui-sidebar-shell {
+    height: 100vh;
+  }
+}
+
+/* Right column */
+.ui-main-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Desktop: fixed height shell */
+@media (min-width: 992px) {
+  .ui-main-shell {
+    height: 100vh;
+  }
+}
+
+/* Mobile: auto height */
+@media (max-width: 991px) {
+  .ui-main-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+}
+
+/* Mobile topbar */
+.ui-topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.ui-topbar-title {
+  font-weight: 850;
+  color: #0f172a;
+}
+
+/* Main pad wrapper */
+.ui-main-pad {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Desktop: fill remaining height */
+@media (min-width: 992px) {
+  .ui-main-pad {
+    height: 100%;
+  }
+}
+
+/* Header spacing */
+.ui-header-spacing {
+  margin-top: 2px;
+}
+
+/* Header */
+.ui-header-card {
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(255,255,255,0.9));
+  border: 1px solid rgba(59,130,246,0.15);
+  box-shadow: 0 15px 35px rgba(59,130,246,0.12);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+/* LEFT side text */
+.ui-page-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.ui-page-subtitle {
+  font-size: 13px;
+  color: rgba(15,23,42,0.6);
+  margin-top: 6px;
+}
+
+/* RIGHT side box */
+.ui-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Greeting lines */
+.ui-greeting-box {
+  text-align: right;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.ui-greet-line1 {
+  font-size: 14px;
+  color: rgba(15,23,42,0.78);
+}
+
+.ui-greet-line2 {
+  font-size: 18px;
+  color: #2563eb;
+  font-weight: 950;
+}
+
+/* Doctor image */
+.ui-doctor-image-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(59,130,246,0.14);
+  display: grid;
+  place-items: center;
+}
+
+.ui-doctor-image-wrap img {
+  width: 42px;
+  height: auto;
+  opacity: 0.9;
+  display: block;
+}
+
+/* Content canvas */
+.ui-content-canvas {
+  border-radius: 18px;
+  padding: 18px;
+  background: #fff;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+}
+
+/* Desktop: canvas fills height and doesn't scroll page */
+@media (min-width: 992px) {
+  .ui-content-canvas {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden; /* keep desktop no page scroll */
+  }
+}
+
+/* Mobile: allow content to flow and page scroll */
+@media (max-width: 991px) {
+  .ui-content-canvas {
+    overflow: visible;
+    padding: 14px;
+  }
+}
+
+/* =========================================================
+   MOBILE HEADER RULES
+   ========================================================= */
+@media (max-width: 991px) {
+  .ui-main-pad {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  /* Keep header in ONE row */
+  .ui-header-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  /* Hide title/subtitle on mobile */
+  .ui-header-left {
+    display: none !important;
+  }
+
+  /* Keep greeting + image on one row */
+  .ui-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ui-greeting-box {
+    text-align: left;
+  }
+
+  /* Smaller image */
+  .ui-doctor-image-wrap {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(59,130,246,0.16);
+    box-shadow: 0 10px 22px rgba(59,130,246,0.12);
+  }
+
+  .ui-doctor-image-wrap img {
+    width: 30px;
+    opacity: 0.92;
+    filter: drop-shadow(0 8px 16px rgba(59,130,246,0.18));
+  }
+}
+
+/* =========================================================
+   CONSULTATION LAYOUT
+   ========================================================= */
+.consult-page {
+  width: 100%;
+}
+
+/* Desktop: split 2 columns and use available canvas height */
+@media (min-width: 992px) {
+  .consult-page {
+    height: 100%;
+  }
+
+  .consult-body-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+
+    /* IMPORTANT: use parent height, not viewport (prevents mobile bugs) */
+    height: 100%;
+    padding-top: 12px;
+    min-height: 0;
+  }
+
+  /* Each column scrolls inside itself */
+  .consult-col {
+    overflow: auto;
+    padding-right: 4px;
+    min-height: 0;
+  }
+}
+
+/* Mobile: stack and let PAGE scroll */
+@media (max-width: 991px) {
+  .consult-body-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    height: auto;
+    padding-top: 12px;
+  }
+
+  .consult-col {
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+/* Nice scrollbars (desktop only) */
+@media (min-width: 992px) {
+  .consult-col::-webkit-scrollbar {
+    width: 8px;
+  }
+  .consult-col::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Cards spacing */
+.consult-card {
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.consult-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.consult-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.consult-sub {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.consult-empty {
+  font-size: 13px;
+  opacity: 0.75;
+  padding: 10px 0;
+}
+
+/* Patient mini summary */
+.patient-mini {
+  display: grid;
+  gap: 8px;
+}
+.patient-mini-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Recorder */
+.rec-panel {
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(0,0,0,0.06);
+  min-height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rec-center {
+  text-align: center;
+}
+
+.rec-mic-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+  font-size: 22px;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
+}
+
+.rec-mic-btn i {
+  font-size: 22px;
+}
+
+.rec-hint {
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.rec-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.rec-transcript {
+  width: 100%;
+}
+.rec-transcript-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.rec-transcript-box {
+  min-height: 120px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(0,0,0,0.07);
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* Swipe recorder */
+.rec-swipe-shell {
+  overflow: hidden;
+  border-radius: 14px;
+}
+.rec-swipe-track {
+  width: 200%;
+  display: flex;
+  transition: transform 260ms ease;
+}
+.rec-swipe-slide {
+  width: 50%;
+  padding: 0;
+}
+
+/* Buttons under mic */
+.rec-switch {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.rec-switch-btn {
+  flex: 1;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.60);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rec-switch-btn.active {
+  border-color: rgba(37,99,235,0.35);
+  background: rgba(37,99,235,0.10);
+  color: #2563eb;
+}
+
+.rec-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.18);
+}
+
+.rec-dot.active {
+  background: rgba(37, 99, 235, 0.75);
+}
+
+/* Symptoms chips */
+.symptom-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sym-chip {
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.55);
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sym-chip.active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.35);
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* Template preview */
+.template-mini {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.template-mini-title {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.template-mini-desc {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 4px;
+}
+
+/* Doctor note */
+.consult-textarea {
+  border-radius: 12px;
+}
+
+/* Generate button area */
+.consult-actions {
+  position: sticky;
+  bottom: 0;
+  padding-bottom: 10px;
+  background: linear-gradient(to top, rgba(255,255,255,0.95), rgba(255,255,255,0.0));
+}
+
+/* Output / report card */
+.consult-output {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  min-height: 520px;
+}
+
+.rep-header {
+  padding: 14px 14px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(99,102,241,0.08));
+}
+
+.rep-title {
+  font-weight: 900;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.rep-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.rep-head-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* icons */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.10);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.85);
+}
+
+.icon-btn i { font-size: 16px; }
+
+.icon-editbig {
+  background: rgba(59,130,246,0.15);
+  border-color: rgba(59,130,246,0.25);
+  color: #2563eb;
+}
+
+.icon-download {
+  background: rgba(34,197,94,0.15);
+  border-color: rgba(34,197,94,0.25);
+  color: #16a34a;
+}
+
+.icon-copy {
+  background: rgba(99,102,241,0.14);
+  border-color: rgba(99,102,241,0.25);
+  color: #4f46e5;
+}
+
+.icon-edit {
+  background: rgba(59,130,246,0.12);
+  border-color: rgba(59,130,246,0.25);
+  color: #2563eb;
+}
+
+.icon-save {
+  background: rgba(34,197,94,0.14);
+  border-color: rgba(34,197,94,0.25);
+  color: #16a34a;
+}
+
+.icon-cancel {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.25);
+  color: #ef4444;
+}
+
+/* Desktop: report body scrolls inside card */
+@media (min-width: 992px) {
+  .rep-scroll {
+    padding: 12px 14px;
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* Mobile: allow full page scroll (don’t trap inside card) */
+@media (max-width: 991px) {
+  .consult-output {
+    min-height: auto;
+  }
+
+  .rep-scroll {
+    padding: 12px 14px;
+    overflow: visible;
+  }
+
+  .rep-footer {
+    position: static;
+  }
+}
+
+.rep-section {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 10px 25px rgba(15,23,42,0.04);
+}
+
+.rep-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.rep-sec-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rep-sec-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.rep-sec-icon.subjective { background: rgba(59,130,246,0.12); color:#2563eb; }
+.rep-sec-icon.objective { background: rgba(34,197,94,0.12); color:#16a34a; }
+.rep-sec-icon.assessment { background: rgba(245,158,11,0.14); color:#d97706; }
+.rep-sec-icon.plan { background: rgba(99,102,241,0.12); color:#4f46e5; }
+
+.rep-sec-title {
+  font-weight: 900;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.rep-sec-body {
+  font-size: 13px;
+  opacity: 0.92;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.rep-editbox {
+  border-radius: 12px;
+}
+
+/* footer */
+.rep-footer {
+  padding: 12px 14px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.80);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rep-btn {
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+/* export dropdown */
+.rep-export { position: relative; }
+
+.rep-export-menu {
+  position: absolute;
+  right: 0;
+  bottom: 48px;
+  width: 210px;
+  background: rgba(255,255,255,0.98);
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+  overflow: hidden;
+  z-index: 1000;
+  padding: 6px;
+}
+
+.rep-export-menu button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rep-export-menu button:hover {
+  background: rgba(37,99,235,0.08);
+}
+
+/* =========================================================
+   React Modal (guaranteed)
+   ========================================================= */
+.rmodal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.rmodal-card {
+  width: min(900px, 96vw);
+  max-height: 86vh;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.30);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+}
+
+.rmodal-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(255,255,255,0.65));
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.rmodal-title {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.rmodal-sub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.rmodal-x {
+  border: 0;
+  background: rgba(0,0,0,0.06);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.rmodal-body {
+  padding: 16px;
+  overflow: auto;
+}
+
+.rmodal-footer {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: rgba(255,255,255,0.75);
+}
+
+/* ===== Medical Report look like screenshot ===== */
+
+/* blue focus border on header area */
+.rep-header-focus{
+  border: 2px solid rgba(37,99,235,0.55);
+  border-left: 2px solid rgba(37,99,235,0.55);
+  border-right: 2px solid rgba(37,99,235,0.55);
+  border-top: 2px solid rgba(37,99,235,0.55);
+  border-bottom: 2px solid rgba(37,99,235,0.55);
+  border-radius: 14px;
+  margin: 12px 12px 0;
+  background: #fff;
+}
+
+/* make report body area feel like a panel */
+.rep-scroll-bg{
+  padding: 12px 12px 14px;
+}
+
+/* keep footer always visible like screenshot */
+.rep-footer-fixed{
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+/* tighten section cards to match screenshot */
+.rep-section{
+  border-radius: 14px;
+}
+
+/* mobile: make output panel scroll inside itself (so you can reach all sections) */
+@media (max-width: 991px){
+  .consult-output{
+    max-height: 78vh;         /* ✅ key: output acts like a panel */
+    overflow: hidden;
+  }
+
+  .rep-scroll{
+    overflow: auto;           /* ✅ allow scroll inside */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rep-footer-fixed{
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* ✅ ADD THESE to ui.css (bottom)
+   This fixes scroll issue in ALL pages */
+
+.ui-main-shell-scroll{
+  min-height: 100vh;
+  overflow: auto;              /* ✅ allow scroll */
+}
+
+.ui-main-pad-scroll{
+  min-height: 100vh;
+}
+
+.ui-content-canvas-scroll{
+  min-height: 60vh;
+  overflow: visible;           /* ✅ important: don't block child scroll */
+}
+
+/* ✅ If any parent has overflow:hidden, this will override for mobile */
+@media (max-width: 991px){
+  .ui-app,
+  .ui-main-shell,
+  .ui-main-pad{
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
