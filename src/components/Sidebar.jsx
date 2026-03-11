@@ -12,26 +12,14 @@ export default function Sidebar({
   active,
   onChange,
   userName = "Doctor",
-  userRole = "Doctor",     // ✅ FIX: default role
-  appName = "MediNote",    // ✅ FIX: default app name
+  userRole = "Medical User",
+  userImage = "",
+  appName = "MediNote",
   onLogout,
 }) {
-  const handleLogout = () => {
-    // ✅ safe logout even if parent didn't pass a function
-    if (typeof onLogout === "function") return onLogout();
-
-    // fallback: clear tokens and reload to login route
-    localStorage.removeItem("medinote_token");
-    localStorage.removeItem("medinote_user");
-    sessionStorage.removeItem("medinote_token");
-    sessionStorage.removeItem("medinote_user");
-    window.location.href = "/login";
-  };
-
   return (
     <div className="ui-left-card">
       <div className="ui-sidebar">
-        {/* TOP */}
         <div className="ui-brand">
           <div className="d-flex align-items-center gap-2">
             <div className="ui-logo-badge">
@@ -44,7 +32,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* MIDDLE */}
         <div className="ui-menu-card ui-menu-scroll">
           <div className="nav nav-pills flex-column gap-2">
             {menus.map((m) => {
@@ -66,23 +53,28 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* BOTTOM */}
         <div className="ui-bottom ui-bottom-fixed">
-          <div className="ui-profile-card">
-            <div className="ui-avatar">
-              <i className="bi bi-person-circle" />
+          <div className="ui-profile-card improved-profile-card">
+            <div className="ui-avatar improved-avatar">
+              {userImage ? (
+                <img src={userImage} alt={userName} className="sidebar-user-img" />
+              ) : (
+                <div className="sidebar-avatar-fallback">
+                  <i className="bi bi-person-fill" />
+                </div>
+              )}
             </div>
 
-            <div className="flex-grow-1">
-              <div className="ui-profile-name">{userName}</div>
-              <div className="ui-profile-role">{userRole}</div>
+            <div className="flex-grow-1 min-w-0">
+              <div className="ui-profile-name text-truncate">{userName}</div>
+              <div className="ui-profile-role text-truncate">{userRole}</div>
             </div>
           </div>
 
           <button
             className="btn btn-danger w-100 ui-logout-danger"
             type="button"
-            onClick={handleLogout}
+            onClick={onLogout}
           >
             <i className="bi bi-box-arrow-left me-2" />
             Logout

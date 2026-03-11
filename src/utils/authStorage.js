@@ -7,6 +7,7 @@ export const getToken = () =>
 export const getUser = () => {
   const raw =
     localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+
   try {
     return raw ? JSON.parse(raw) : null;
   } catch {
@@ -17,12 +18,27 @@ export const getUser = () => {
 export const setSession = ({ token, user, remember = true }) => {
   const store = remember ? localStorage : sessionStorage;
 
-  store.setItem(TOKEN_KEY, token);
-  store.setItem(USER_KEY, JSON.stringify(user));
+  if (token) {
+    store.setItem(TOKEN_KEY, token);
+  }
 
-  // clear other storage
-  (remember ? sessionStorage : localStorage).removeItem(TOKEN_KEY);
-  (remember ? sessionStorage : localStorage).removeItem(USER_KEY);
+  if (user) {
+    store.setItem(USER_KEY, JSON.stringify(user));
+  }
+
+  const otherStore = remember ? sessionStorage : localStorage;
+  otherStore.removeItem(TOKEN_KEY);
+  otherStore.removeItem(USER_KEY);
+};
+
+export const updateStoredUser = (user) => {
+  if (localStorage.getItem(USER_KEY)) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+
+  if (sessionStorage.getItem(USER_KEY)) {
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
 };
 
 export const clearSession = () => {

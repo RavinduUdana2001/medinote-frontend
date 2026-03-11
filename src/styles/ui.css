@@ -1,55 +1,56 @@
 /* =========================================================
-   GLOBAL (IMPORTANT FIX)
-   - Desktop: no page scroll
-   - Mobile: allow page scroll
+   GLOBAL
    ========================================================= */
-
-html, body {
+html,
+body {
   margin: 0;
   background: #f3f7ff;
 }
 
-/* Default: allow scroll (mobile + general) */
-html, body, #root {
+html,
+body,
+#root {
   height: auto;
   overflow: auto;
 }
 
-/* Desktop only: lock page scroll */
 @media (min-width: 992px) {
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
     overflow: hidden;
   }
 }
 
-/* ===== App layout ===== */
+/* =========================================================
+   APP LAYOUT
+   ========================================================= */
 .ui-app {
   display: flex;
   background: #f3f7ff;
 }
 
-/* Desktop: fixed height app */
 @media (min-width: 992px) {
   .ui-app {
     height: 100vh;
   }
 }
 
-/* Mobile: allow page to grow */
 @media (max-width: 991px) {
   .ui-app {
     min-height: 100vh;
+    display: block;
   }
 }
 
-/* Left column */
 .ui-sidebar-shell {
   width: 320px;
   background: #f3f7ff;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
+  flex-shrink: 0;
 }
 
 @media (min-width: 992px) {
@@ -58,7 +59,6 @@ html, body, #root {
   }
 }
 
-/* Right column */
 .ui-main-shell {
   flex: 1;
   display: flex;
@@ -66,38 +66,60 @@ html, body, #root {
   min-width: 0;
 }
 
-/* Desktop: fixed height shell */
+/* consultation / history / settings */
 @media (min-width: 992px) {
-  .ui-main-shell {
+  .ui-main-shell-contained {
     height: 100vh;
+    overflow: hidden;
   }
 }
 
-/* Mobile: auto height */
+/* templates only */
+@media (min-width: 992px) {
+  .ui-main-shell-page-scroll {
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+}
+
 @media (max-width: 991px) {
-  .ui-main-shell {
+  .ui-main-shell,
+  .ui-main-shell-contained,
+  .ui-main-shell-page-scroll {
     height: auto;
     min-height: 100vh;
+    overflow: visible;
   }
 }
 
-/* Mobile topbar */
+/* =========================================================
+   MOBILE TOPBAR
+   ========================================================= */
 .ui-topbar {
   height: 60px;
   display: flex;
   align-items: center;
   padding: 0 14px;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(8px);
 }
 
 .ui-topbar-title {
   font-weight: 850;
   color: #0f172a;
+  font-size: 15px;
 }
 
-/* Main pad wrapper */
+/* =========================================================
+   MAIN PAD
+   ========================================================= */
 .ui-main-pad {
   padding: 14px;
   display: flex;
@@ -106,134 +128,235 @@ html, body, #root {
   min-height: 0;
 }
 
-/* Desktop: fill remaining height */
+/* consultation/history/settings */
 @media (min-width: 992px) {
-  .ui-main-pad {
+  .ui-main-pad-contained {
     height: 100%;
+    overflow: hidden;
   }
 }
 
-/* Header spacing */
+/* templates */
+@media (min-width: 992px) {
+  .ui-main-pad-page-scroll {
+    min-height: 100%;
+    overflow: visible;
+    padding-bottom: 20px;
+  }
+}
+
+@media (max-width: 991px) {
+  .ui-main-pad,
+  .ui-main-pad-contained,
+  .ui-main-pad-page-scroll {
+    padding: 12px;
+    gap: 10px;
+    min-height: auto;
+    overflow: visible;
+  }
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 .ui-header-spacing {
   margin-top: 2px;
 }
 
-/* Header */
 .ui-header-card {
   border-radius: 18px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(255,255,255,0.9));
-  border: 1px solid rgba(59,130,246,0.15);
-  box-shadow: 0 15px 35px rgba(59,130,246,0.12);
-
+  padding: 15px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.13),
+    rgba(255, 255, 255, 0.92)
+  );
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  box-shadow: 0 14px 30px rgba(59, 130, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
 
-/* LEFT side text */
+/* IMPORTANT: no sticky header in template page now */
+.ui-header-left {
+  min-width: 0;
+}
+
 .ui-page-title {
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 23px;
+  font-weight: 800;
   color: #0f172a;
+  line-height: 1.15;
 }
 
 .ui-page-subtitle {
   font-size: 13px;
-  color: rgba(15,23,42,0.6);
+  color: rgba(15, 23, 42, 0.6);
   margin-top: 6px;
+  line-height: 1.4;
 }
 
-/* RIGHT side box */
 .ui-header-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
-/* Greeting lines */
 .ui-greeting-box {
   text-align: right;
   line-height: 1.1;
-  font-weight: 900;
 }
 
 .ui-greet-line1 {
-  font-size: 14px;
-  color: rgba(15,23,42,0.78);
+  font-size: 13px;
+  color: rgba(15, 23, 42, 0.72);
+  font-weight: 700;
 }
 
 .ui-greet-line2 {
-  font-size: 18px;
+  font-size: 19px;
   color: #2563eb;
-  font-weight: 950;
+  font-weight: 850;
+  margin-top: 3px;
 }
 
-/* Doctor image */
 .ui-doctor-image-wrap {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(59,130,246,0.14);
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.16);
+  box-shadow: 0 12px 26px rgba(59, 130, 246, 0.12);
   display: grid;
   place-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.ui-doctor-image-wrap img {
-  width: 42px;
-  height: auto;
-  opacity: 0.9;
+.ui-clickable-profile {
+  position: relative;
+  cursor: pointer;
+}
+
+.ui-header-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
-/* Content canvas */
+.ui-header-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  color: #2563eb;
+  font-size: 26px;
+}
+
+.ui-profile-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: rgba(15, 23, 42, 0.66);
+  color: #fff;
+  text-align: center;
+  padding: 5px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.ui-clickable-profile:hover .ui-profile-overlay {
+  opacity: 1;
+}
+
+/* =========================================================
+   CONTENT CANVAS
+   ========================================================= */
 .ui-content-canvas {
   border-radius: 18px;
   padding: 18px;
   background: #fff;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+  min-width: 0;
 }
 
-/* Desktop: canvas fills height and doesn't scroll page */
+.ui-page-inner {
+  min-width: 0;
+}
+
+/* contained mode: consultation/history/settings */
 @media (min-width: 992px) {
-  .ui-content-canvas {
+  .ui-content-canvas-contained {
     flex: 1;
     min-height: 0;
-    overflow: hidden; /* keep desktop no page scroll */
+    overflow: hidden;
+  }
+
+  .ui-page-inner-contained {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 }
 
-/* Mobile: allow content to flow and page scroll */
+/* templates mode: page scroll */
+@media (min-width: 992px) {
+  .ui-content-canvas-page-scroll {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .ui-page-inner-page-scroll {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .ui-content-canvas-page-scroll > * {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+}
+
 @media (max-width: 991px) {
-  .ui-content-canvas {
+  .ui-content-canvas,
+  .ui-content-canvas-contained,
+  .ui-content-canvas-page-scroll {
     overflow: visible;
     padding: 14px;
+    min-height: auto;
+  }
+
+  .ui-page-inner,
+  .ui-page-inner-contained,
+  .ui-page-inner-page-scroll {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
   }
 }
 
 /* =========================================================
-   MOBILE HEADER RULES
+   MOBILE HEADER
    ========================================================= */
 @media (max-width: 991px) {
-  .ui-main-pad {
-    padding: 12px;
-    gap: 10px;
-  }
-
-  /* Keep header in ONE row */
   .ui-header-card {
     padding: 12px 14px;
     gap: 10px;
   }
 
-  /* Hide title/subtitle on mobile */
   .ui-header-left {
     display: none !important;
   }
 
-  /* Keep greeting + image on one row */
   .ui-header-right {
     width: 100%;
     justify-content: space-between;
@@ -243,48 +366,56 @@ html, body, #root {
     text-align: left;
   }
 
-  /* Smaller image */
-  .ui-doctor-image-wrap {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.85);
-    border: 1px solid rgba(59,130,246,0.16);
-    box-shadow: 0 10px 22px rgba(59,130,246,0.12);
+  .ui-greet-line1 {
+    font-size: 12px;
   }
 
-  .ui-doctor-image-wrap img {
-    width: 30px;
-    opacity: 0.92;
-    filter: drop-shadow(0 8px 16px rgba(59,130,246,0.18));
+  .ui-greet-line2 {
+    font-size: 17px;
+  }
+
+  .ui-doctor-image-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    box-shadow: 0 10px 22px rgba(59, 130, 246, 0.12);
+  }
+
+  .ui-header-avatar-fallback {
+    font-size: 22px;
   }
 }
 
 /* =========================================================
-   CONSULTATION LAYOUT
+   CONSULTATION / HISTORY / SETTINGS INTERNAL SCROLL AREA
    ========================================================= */
-.consult-page {
+.consult-page,
+.history-page,
+.settings-shell-pro {
   width: 100%;
 }
 
-/* Desktop: split 2 columns and use available canvas height */
 @media (min-width: 992px) {
-  .consult-page {
+  .consult-page,
+  .history-page,
+  .settings-shell-pro {
     height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
+}
 
+/* consultation layout */
+@media (min-width: 992px) {
   .consult-body-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
-
-    /* IMPORTANT: use parent height, not viewport (prevents mobile bugs) */
     height: 100%;
     padding-top: 12px;
     min-height: 0;
   }
 
-  /* Each column scrolls inside itself */
   .consult-col {
     overflow: auto;
     padding-right: 4px;
@@ -292,7 +423,6 @@ html, body, #root {
   }
 }
 
-/* Mobile: stack and let PAGE scroll */
 @media (max-width: 991px) {
   .consult-body-grid {
     display: flex;
@@ -308,18 +438,42 @@ html, body, #root {
   }
 }
 
-/* Nice scrollbars (desktop only) */
 @media (min-width: 992px) {
-  .consult-col::-webkit-scrollbar {
+  .consult-col::-webkit-scrollbar,
+  .history-scroll-area::-webkit-scrollbar,
+  .settings-scroll-area::-webkit-scrollbar {
     width: 8px;
   }
-  .consult-col::-webkit-scrollbar-thumb {
+
+  .consult-col::-webkit-scrollbar-thumb,
+  .history-scroll-area::-webkit-scrollbar-thumb,
+  .settings-scroll-area::-webkit-scrollbar-thumb {
     border-radius: 10px;
     background: rgba(0, 0, 0, 0.15);
   }
 }
 
-/* Cards spacing */
+/* history + settings helper internal scroll */
+@media (min-width: 992px) {
+  .history-scroll-area,
+  .settings-scroll-area {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 4px;
+  }
+}
+
+@media (max-width: 991px) {
+  .history-scroll-area,
+  .settings-scroll-area {
+    height: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+/* generic cards */
 .consult-card {
   padding: 14px;
   margin-bottom: 12px;
@@ -350,11 +504,11 @@ html, body, #root {
   padding: 10px 0;
 }
 
-/* Patient mini summary */
 .patient-mini {
   display: grid;
   gap: 8px;
 }
+
 .patient-mini-row {
   display: flex;
   justify-content: space-between;
@@ -362,15 +516,14 @@ html, body, #root {
   padding: 8px 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-/* Recorder */
 .rec-panel {
   border-radius: 14px;
   padding: 12px;
-  background: rgba(255,255,255,0.55);
-  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   min-height: 190px;
   display: flex;
   align-items: center;
@@ -411,37 +564,39 @@ html, body, #root {
 .rec-transcript {
   width: 100%;
 }
+
 .rec-transcript-title {
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 8px;
 }
+
 .rec-transcript-box {
   min-height: 120px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.65);
-  border: 1px solid rgba(0,0,0,0.07);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.07);
   font-size: 13px;
   opacity: 0.85;
 }
 
-/* Swipe recorder */
 .rec-swipe-shell {
   overflow: hidden;
   border-radius: 14px;
 }
+
 .rec-swipe-track {
   width: 200%;
   display: flex;
   transition: transform 260ms ease;
 }
+
 .rec-swipe-slide {
   width: 50%;
   padding: 0;
 }
 
-/* Buttons under mic */
 .rec-switch {
   display: flex;
   gap: 10px;
@@ -450,8 +605,8 @@ html, body, #root {
 
 .rec-switch-btn {
   flex: 1;
-  border: 1px solid rgba(0,0,0,0.10);
-  background: rgba(255,255,255,0.60);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.6);
   padding: 10px 12px;
   border-radius: 12px;
   font-weight: 800;
@@ -462,8 +617,8 @@ html, body, #root {
 }
 
 .rec-switch-btn.active {
-  border-color: rgba(37,99,235,0.35);
-  background: rgba(37,99,235,0.10);
+  border-color: rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.1);
   color: #2563eb;
 }
 
@@ -478,14 +633,13 @@ html, body, #root {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgba(0,0,0,0.18);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .rec-dot.active {
   background: rgba(37, 99, 235, 0.75);
 }
 
-/* Symptoms chips */
 .symptom-chips {
   display: flex;
   flex-wrap: wrap;
@@ -493,8 +647,8 @@ html, body, #root {
 }
 
 .sym-chip {
-  border: 1px solid rgba(0,0,0,0.10);
-  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.55);
   padding: 7px 10px;
   border-radius: 999px;
   font-size: 13px;
@@ -508,12 +662,11 @@ html, body, #root {
   font-weight: 700;
 }
 
-/* Template preview */
 .template-mini {
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.55);
-  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .template-mini-title {
@@ -527,20 +680,22 @@ html, body, #root {
   margin-top: 4px;
 }
 
-/* Doctor note */
 .consult-textarea {
   border-radius: 12px;
 }
 
-/* Generate button area */
 .consult-actions {
   position: sticky;
   bottom: 0;
   padding-bottom: 10px;
-  background: linear-gradient(to top, rgba(255,255,255,0.95), rgba(255,255,255,0.0));
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0)
+  );
 }
 
-/* Output / report card */
+/* output */
 .consult-output {
   padding: 0 !important;
   display: flex;
@@ -555,8 +710,12 @@ html, body, #root {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(99,102,241,0.08));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.12),
+    rgba(99, 102, 241, 0.08)
+  );
 }
 
 .rep-title {
@@ -576,57 +735,57 @@ html, body, #root {
   gap: 10px;
 }
 
-/* icons */
 .icon-btn {
   width: 40px;
   height: 40px;
   border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.10);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.85);
+  background: rgba(255, 255, 255, 0.85);
 }
 
-.icon-btn i { font-size: 16px; }
+.icon-btn i {
+  font-size: 16px;
+}
 
 .icon-editbig {
-  background: rgba(59,130,246,0.15);
-  border-color: rgba(59,130,246,0.25);
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.25);
   color: #2563eb;
 }
 
 .icon-download {
-  background: rgba(34,197,94,0.15);
-  border-color: rgba(34,197,94,0.25);
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.25);
   color: #16a34a;
 }
 
 .icon-copy {
-  background: rgba(99,102,241,0.14);
-  border-color: rgba(99,102,241,0.25);
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.25);
   color: #4f46e5;
 }
 
 .icon-edit {
-  background: rgba(59,130,246,0.12);
-  border-color: rgba(59,130,246,0.25);
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
   color: #2563eb;
 }
 
 .icon-save {
-  background: rgba(34,197,94,0.14);
-  border-color: rgba(34,197,94,0.25);
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.25);
   color: #16a34a;
 }
 
 .icon-cancel {
-  background: rgba(239,68,68,0.12);
-  border-color: rgba(239,68,68,0.25);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
   color: #ef4444;
 }
 
-/* Desktop: report body scrolls inside card */
 @media (min-width: 992px) {
   .rep-scroll {
     padding: 12px 14px;
@@ -636,7 +795,6 @@ html, body, #root {
   }
 }
 
-/* Mobile: allow full page scroll (don’t trap inside card) */
 @media (max-width: 991px) {
   .consult-output {
     min-height: auto;
@@ -655,10 +813,10 @@ html, body, #root {
 .rep-section {
   margin-bottom: 12px;
   padding: 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.72);
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 10px 25px rgba(15,23,42,0.04);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
 }
 
 .rep-sec-head {
@@ -685,10 +843,25 @@ html, body, #root {
   font-size: 15px;
 }
 
-.rep-sec-icon.subjective { background: rgba(59,130,246,0.12); color:#2563eb; }
-.rep-sec-icon.objective { background: rgba(34,197,94,0.12); color:#16a34a; }
-.rep-sec-icon.assessment { background: rgba(245,158,11,0.14); color:#d97706; }
-.rep-sec-icon.plan { background: rgba(99,102,241,0.12); color:#4f46e5; }
+.rep-sec-icon.subjective {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.rep-sec-icon.objective {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.rep-sec-icon.assessment {
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+}
+
+.rep-sec-icon.plan {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
 
 .rep-sec-title {
   font-weight: 900;
@@ -707,11 +880,10 @@ html, body, #root {
   border-radius: 12px;
 }
 
-/* footer */
 .rep-footer {
   padding: 12px 14px;
-  border-top: 1px solid rgba(0,0,0,0.06);
-  background: rgba(255,255,255,0.80);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.8);
   display: flex;
   gap: 10px;
   justify-content: space-between;
@@ -724,18 +896,19 @@ html, body, #root {
   font-weight: 700;
 }
 
-/* export dropdown */
-.rep-export { position: relative; }
+.rep-export {
+  position: relative;
+}
 
 .rep-export-menu {
   position: absolute;
   right: 0;
   bottom: 48px;
   width: 210px;
-  background: rgba(255,255,255,0.98);
-  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   overflow: hidden;
   z-index: 1000;
   padding: 6px;
@@ -755,11 +928,11 @@ html, body, #root {
 }
 
 .rep-export-menu button:hover {
-  background: rgba(37,99,235,0.08);
+  background: rgba(37, 99, 235, 0.08);
 }
 
 /* =========================================================
-   React Modal (guaranteed)
+   REACT MODAL
    ========================================================= */
 .rmodal-overlay {
   position: fixed;
@@ -776,10 +949,10 @@ html, body, #root {
   width: min(900px, 96vw);
   max-height: 86vh;
   background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.30);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
@@ -791,8 +964,12 @@ html, body, #root {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(255,255,255,0.65));
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.12),
+    rgba(255, 255, 255, 0.65)
+  );
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .rmodal-title {
@@ -808,7 +985,7 @@ html, body, #root {
 
 .rmodal-x {
   border: 0;
-  background: rgba(0,0,0,0.06);
+  background: rgba(0, 0, 0, 0.06);
   width: 34px;
   height: 34px;
   border-radius: 10px;
@@ -822,85 +999,370 @@ html, body, #root {
 
 .rmodal-footer {
   padding: 14px 16px;
-  border-top: 1px solid rgba(0,0,0,0.06);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  background: rgba(255,255,255,0.75);
+  background: rgba(255, 255, 255, 0.75);
 }
 
-/* ===== Medical Report look like screenshot ===== */
-
-/* blue focus border on header area */
-.rep-header-focus{
-  border: 2px solid rgba(37,99,235,0.55);
-  border-left: 2px solid rgba(37,99,235,0.55);
-  border-right: 2px solid rgba(37,99,235,0.55);
-  border-top: 2px solid rgba(37,99,235,0.55);
-  border-bottom: 2px solid rgba(37,99,235,0.55);
+.rep-header-focus {
+  border: 2px solid rgba(37, 99, 235, 0.55);
   border-radius: 14px;
   margin: 12px 12px 0;
   background: #fff;
 }
 
-/* make report body area feel like a panel */
-.rep-scroll-bg{
+.rep-scroll-bg {
   padding: 12px 12px 14px;
 }
 
-/* keep footer always visible like screenshot */
-.rep-footer-fixed{
+.rep-footer-fixed {
   position: sticky;
   bottom: 0;
   z-index: 5;
 }
 
-/* tighten section cards to match screenshot */
-.rep-section{
-  border-radius: 14px;
-}
-
-/* mobile: make output panel scroll inside itself (so you can reach all sections) */
-@media (max-width: 991px){
-  .consult-output{
-    max-height: 78vh;         /* ✅ key: output acts like a panel */
+@media (max-width: 991px) {
+  .consult-output {
+    max-height: 78vh;
     overflow: hidden;
   }
 
-  .rep-scroll{
-    overflow: auto;           /* ✅ allow scroll inside */
+  .rep-scroll {
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  .rep-footer-fixed{
-    background: rgba(255,255,255,0.92);
+  .rep-footer-fixed {
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(8px);
   }
 }
 
-/* ✅ ADD THESE to ui.css (bottom)
-   This fixes scroll issue in ALL pages */
-
-.ui-main-shell-scroll{
-  min-height: 100vh;
-  overflow: auto;              /* ✅ allow scroll */
+/* =========================================================
+   SETTINGS + CROP MODAL
+   ========================================================= */
+.settings-shell-pro {
+  width: 100%;
 }
 
-.ui-main-pad-scroll{
-  min-height: 100vh;
+.settings-tabs-pro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
-.ui-content-canvas-scroll{
-  min-height: 60vh;
-  overflow: visible;           /* ✅ important: don't block child scroll */
+.settings-tabs-pro button {
+  border: none;
+  background: #ffffff;
+  color: #334155;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
 }
 
-/* ✅ If any parent has overflow:hidden, this will override for mobile */
-@media (max-width: 991px){
+.settings-tabs-pro button.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+}
+
+.settings-card-pro {
+  background: #fff;
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.settings-card-head-pro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.settings-card-head-pro h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.settings-card-head-pro p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.profile-edit-btn {
+  height: 42px;
+  border-radius: 12px;
+  border: none;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.msg-box {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.msg-box.success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.msg-box.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.profile-top-pro {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.profile-avatar-big-pro {
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+}
+
+.profile-avatar-big-pro img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-fallback-pro {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  color: #2563eb;
+  font-size: 38px;
+}
+
+.profile-meta-pro h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.profile-meta-pro p {
+  margin: 8px 0 14px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.change-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid #bfdbfe;
+  cursor: pointer;
+}
+
+.profile-grid-pro {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field-pro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-pro label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.field-pro input {
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid #dbe3ee;
+  padding: 0 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.field-pro input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.profile-actions-pro {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancel-btn-pro,
+.save-btn-pro {
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  padding: 0 18px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.cancel-btn-pro {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.save-btn-pro {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+}
+
+.crop-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.crop-modal-card {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.25);
+}
+
+.crop-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.crop-modal-head h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.crop-close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: #f1f5f9;
+  font-size: 22px;
+}
+
+.cropper-shell {
+  position: relative;
+  height: 320px;
+  background: #0f172a;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.crop-controls {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.crop-controls span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.crop-controls input {
+  flex: 1;
+}
+
+.crop-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.crop-btn {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+}
+
+.crop-btn.secondary {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.crop-btn.primary {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+}
+
+/* =========================================================
+   RESPONSIVE HELPERS
+   ========================================================= */
+@media (max-width: 991px) {
   .ui-app,
   .ui-main-shell,
-  .ui-main-pad{
+  .ui-main-pad {
     height: auto !important;
     overflow: visible !important;
+  }
+
+  .settings-card-head-pro {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-grid-pro {
+    grid-template-columns: 1fr;
+  }
+
+  .cropper-shell {
+    height: 280px;
   }
 }

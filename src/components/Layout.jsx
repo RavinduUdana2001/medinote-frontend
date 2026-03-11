@@ -7,19 +7,38 @@ import ConsultationPage from "../pages/ConsultationPage";
 import HistoryPage from "../pages/HistoryPage";
 import TemplatesPage from "../pages/TemplatesPage";
 import SettingsPage from "../pages/SettingsPage";
-import { getUser, clearSession } from "../utils/authStorage";
+import ProfileImageCropModal from "./ProfileImageCropModal";
+import { clearSession, getUser, updateStoredUser } from "../utils/authStorage";
+import { getMyProfile, uploadProfileImage } from "../api/profile.api";
 
 export default function Layout() {
   const [active, setActive] = useState("consultation");
+  const [currentUser, setCurrentUser] = useState(getUser());
+  const [cropOpen, setCropOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState("");
+  const [uploadingHeaderImage, setUploadingHeaderImage] = useState(false);
   const navigate = useNavigate();
-
-  const currentUser = getUser();
-  const doctorName = currentUser?.name || "Doctor";
 
   const handleLogout = () => {
     clearSession();
     navigate("/login");
   };
+
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const res = await getMyProfile();
+        setCurrentUser(res.user);
+        updateStoredUser(res.user);
+      } catch (error) {
+        console.error("Failed to fetch current user:", error);
+      }
+    };
+
+    loadMe();
+  }, []);
+
+  const doctorName = currentUser?.name || "Doctor";
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -43,7 +62,7 @@ export default function Layout() {
       case "settings":
         return {
           title: "Settings",
-          subtitle: "Update your profile and preferences.",
+          subtitle: "Manage your profile and preferences.",
         };
       default:
         return {
@@ -53,17 +72,38 @@ export default function Layout() {
     }
   }, [active]);
 
-  useEffect(() => {
-    document.documentElement.style.overflow = "auto";
-    document.body.style.overflow = "auto";
-    document.body.style.height = "auto";
+  const handleUserUpdated = (updatedUser) => {
+    setCurrentUser(updatedUser);
+    updateStoredUser(updatedUser);
+  };
 
-    return () => {
-      document.documentElement.style.overflow = "";
-      document.body.style.overflow = "";
-      document.body.style.height = "";
-    };
-  }, [active]);
+  const handleSelectHeaderImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImageSrc(previewUrl);
+    setCropOpen(true);
+    e.target.value = "";
+  };
+
+  const handleCropDone = async (croppedFile) => {
+    try {
+      setUploadingHeaderImage(true);
+      const res = await uploadProfileImage(croppedFile);
+      setCurrentUser(res.user);
+      updateStoredUser(res.user);
+      setCropOpen(false);
+      setSelectedImageSrc("");
+    } catch (error) {
+      console.error("Header image upload failed:", error);
+    } finally {
+      setUploadingHeaderImage(false);
+    }
+  };
+
+  const isPageScrollMode = active === "templates";
+  const isContainedMode = !isPageScrollMode;
 
   const renderPage = () => {
     switch (active) {
@@ -74,84 +114,115 @@ export default function Layout() {
       case "templates":
         return <TemplatesPage />;
       case "settings":
-        return <SettingsPage />;
+        return (
+          <SettingsPage
+            currentUser={currentUser}
+            onUserUpdated={handleUserUpdated}
+          />
+        );
       default:
         return <ConsultationPage />;
     }
   };
 
-  const handleMobileNavChange = (key) => {
-    setActive(key);
-
-    const el = document.getElementById("sidebarOffcanvas");
-    if (el && window.bootstrap?.Offcanvas) {
-      const instance = window.bootstrap.Offcanvas.getOrCreateInstance(el);
-      instance.hide();
-    }
-  };
-
   return (
     <div className="ui-app">
-      {/* LEFT (Desktop Sidebar) */}
       <aside className="ui-sidebar-shell d-none d-lg-flex">
         <Sidebar
           active={active}
           onChange={setActive}
           userName={doctorName}
+          userRole="Medical User"
+          userImage={currentUser?.profile_image_url || ""}
           onLogout={handleLogout}
         />
       </aside>
 
-      {/* RIGHT */}
-      <div className="ui-main-shell ui-main-shell-scroll">
-        {/* Mobile topbar */}
+      <div
+        className={`ui-main-shell ${
+          isContainedMode
+            ? "ui-main-shell-contained"
+            : "ui-main-shell-page-scroll"
+        }`}
+      >
         <div className="ui-topbar d-lg-none">
           <button
             className="btn btn-light"
             data-bs-toggle="offcanvas"
             data-bs-target="#sidebarOffcanvas"
             aria-label="Open menu"
-            type="button"
           >
             <i className="bi bi-list fs-4"></i>
           </button>
-
-          <div className="ui-topbar-title">{headerContent.title}</div>
+          <div className="ui-topbar-title">Dashboard</div>
         </div>
 
-        {/* Main pad */}
-        <div className="ui-main-pad ui-main-pad-scroll">
-          {/* Header */}
+        <div
+          className={`ui-main-pad ${
+            isContainedMode ? "ui-main-pad-contained" : "ui-main-pad-page-scroll"
+          }`}
+        >
           <div className="ui-header-card ui-header-spacing">
-            {/* LEFT side */}
             <div className="ui-header-left">
               <div className="ui-page-title">{headerContent.title}</div>
               <div className="ui-page-subtitle">{headerContent.subtitle}</div>
             </div>
 
-            {/* RIGHT side */}
             <div className="ui-header-right">
               <div className="ui-greeting-box">
                 <div className="ui-greet-line1">{greeting},</div>
                 <div className="ui-greet-line2">{doctorName}</div>
               </div>
 
-              <div className="ui-doctor-image-wrap">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/3774/3774299.png"
-                  alt="Doctor"
+              <label
+                className="ui-doctor-image-wrap ui-clickable-profile"
+                title="Upload profile image"
+              >
+                {currentUser?.profile_image_url ? (
+                  <img
+                    src={currentUser.profile_image_url}
+                    alt={doctorName}
+                    className="ui-header-avatar-img"
+                  />
+                ) : (
+                  <div className="ui-header-avatar-fallback">
+                    <i className="bi bi-person-fill" />
+                  </div>
+                )}
+
+                <div className="ui-profile-overlay">
+                  {uploadingHeaderImage ? "Uploading..." : "Change"}
+                </div>
+
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  hidden
+                  onChange={handleSelectHeaderImage}
                 />
-              </div>
+              </label>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="ui-content-canvas ui-content-canvas-scroll">
-            {renderPage()}
+          <div
+            className={`ui-content-canvas ${
+              isContainedMode
+                ? "ui-content-canvas-contained"
+                : "ui-content-canvas-page-scroll"
+            }`}
+          >
+            <div
+              className={`ui-page-inner ${
+                isContainedMode
+                  ? "ui-page-inner-contained"
+                  : "ui-page-inner-page-scroll"
+              }`}
+            >
+              {renderPage()}
+            </div>
           </div>
         </div>
 
-        {/* Mobile Offcanvas Sidebar */}
         <div
           className="offcanvas offcanvas-start ui-offcanvas"
           tabIndex="-1"
@@ -184,13 +255,32 @@ export default function Layout() {
           <div className="offcanvas-body p-0 ui-offcanvas-body">
             <Sidebar
               active={active}
-              onChange={handleMobileNavChange}
+              onChange={(key) => {
+                setActive(key);
+                const el = document.getElementById("sidebarOffcanvas");
+                if (el) {
+                  const inst = window.bootstrap?.Offcanvas.getInstance(el);
+                  inst?.hide();
+                }
+              }}
               userName={doctorName}
+              userRole="Medical User"
+              userImage={currentUser?.profile_image_url || ""}
               onLogout={handleLogout}
             />
           </div>
         </div>
       </div>
+
+      <ProfileImageCropModal
+        open={cropOpen}
+        imageSrc={selectedImageSrc}
+        onClose={() => {
+          setCropOpen(false);
+          setSelectedImageSrc("");
+        }}
+        onDone={handleCropDone}
+      />
     </div>
   );
 }
