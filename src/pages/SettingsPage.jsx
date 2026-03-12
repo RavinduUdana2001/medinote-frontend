@@ -191,7 +191,7 @@ export default function SettingsPage({ currentUser, onUserUpdated }) {
       showSuccess("Profile Updated", "Your profile details were updated successfully.");
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || "Failed to update profile.");
+      setError(err?.response?.data?.message || err?.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }
@@ -231,7 +231,7 @@ export default function SettingsPage({ currentUser, onUserUpdated }) {
       showSuccess("Profile Photo Updated", "Your profile image was updated successfully.");
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || "Failed to upload image.");
+      setError(err?.response?.data?.message || err?.message || "Failed to upload image.");
     }
   };
 
@@ -239,6 +239,19 @@ export default function SettingsPage({ currentUser, onUserUpdated }) {
     try {
       resetMessages();
       setSaving(true);
+
+      if (!passwordForm.currentPassword) {
+        setSaving(false);
+        return setError("Please enter your current password.");
+      }
+      if (!passwordForm.newPassword || passwordForm.newPassword.length < 8) {
+        setSaving(false);
+        return setError("New password must be at least 8 characters. Use letters and numbers.");
+      }
+      if (passwordForm.confirmPassword !== passwordForm.newPassword) {
+        setSaving(false);
+        return setError("New password and confirm password do not match.");
+      }
 
       const res = await changePassword(passwordForm);
 
@@ -254,7 +267,7 @@ export default function SettingsPage({ currentUser, onUserUpdated }) {
       );
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || "Failed to change password.");
+      setError(err?.response?.data?.message || err?.message || "Failed to change password.");
     } finally {
       setSaving(false);
     }
@@ -280,7 +293,7 @@ export default function SettingsPage({ currentUser, onUserUpdated }) {
       );
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || "Failed to send support message.");
+      setError(err?.response?.data?.message || err?.message || "Failed to send support message.");
     } finally {
       setSaving(false);
     }
@@ -307,7 +320,7 @@ export default function SettingsPage({ currentUser, onUserUpdated }) {
       }, 1200);
     } catch (err) {
       console.error(err);
-      setError(err?.response?.data?.message || "Failed to delete account.");
+      setError(err?.response?.data?.message || err?.message || "Failed to delete account.");
     } finally {
       setSaving(false);
     }
