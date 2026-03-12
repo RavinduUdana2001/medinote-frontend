@@ -31,7 +31,7 @@ export default function Signup() {
     if (!form.email.trim()) return "Please enter your email.";
     if (!form.phone.trim()) return "Please enter your phone.";
     if (!form.password || form.password.length < 8)
-      return "Password must be at least 8 characters.";
+      return "Password must be at least 8 characters. Use letters and numbers.";
     if (!form.agree) return "Please accept Privacy Policy and Terms.";
     return "";
   };

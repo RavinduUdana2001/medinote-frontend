@@ -199,7 +199,7 @@ export default function Login() {
     if (!email) return setFpErr("Email is required.");
     if (!code) return setFpErr("Please enter the OTP code.");
     if (!newPassword || newPassword.length < 8)
-      return setFpErr("Password must be at least 8 characters.");
+      return setFpErr("Password must be at least 8 characters. Use letters and numbers.");
     if (fp.confirmPassword !== newPassword) return setFpErr("Passwords do not match.");
 
     try {
