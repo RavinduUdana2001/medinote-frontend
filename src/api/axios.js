@@ -26,10 +26,24 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    const message =
+    const hasResponse = !!error?.response;
+
+    let message =
       error?.response?.data?.message ||
       error?.message ||
       "Request failed. Please try again.";
+
+    if (!hasResponse) {
+      // Network or SSL issues (e.g., bad https/http mismatch)
+      const base = API_BASE;
+      if (String(base).startsWith("https://")) {
+        message =
+          "Cannot connect securely to the API. Check SSL/HTTPS settings or use http:// for local development.";
+      } else {
+        message =
+          "Cannot reach the API server. Check that the backend is running and the API URL is correct.";
+      }
+    }
 
     if (status === 401) {
       clearSession();

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+﻿import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import "../styles/ui.css";
@@ -30,6 +30,9 @@ export default function Layout() {
         const res = await getMyProfile();
         setCurrentUser(res.user);
         updateStoredUser(res.user);
+        if (res.user && !res.user.onboarding_completed) {
+          navigate("/onboarding");
+        }
       } catch (error) {
         console.error("Failed to fetch current user:", error);
       }
@@ -284,3 +287,4 @@ export default function Layout() {
     </div>
   );
 }
+

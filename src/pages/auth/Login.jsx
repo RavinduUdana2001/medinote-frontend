@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/auth.css";
 import { login, forgotPassword, resendResetOtp, resetPassword } from "../../api/auth.api";
+import { setSession } from "../../utils/authStorage";
 import doctorsImg from "../../assets/doctors.jpg";
 
 export default function Login() {
@@ -62,20 +63,13 @@ export default function Login() {
       });
 
       // store token + user
-      if (form.remember) {
-        localStorage.setItem("medinote_token", data.token);
-        localStorage.setItem("medinote_user", JSON.stringify(data.user));
-        sessionStorage.removeItem("medinote_token");
-        sessionStorage.removeItem("medinote_user");
-      } else {
-        sessionStorage.setItem("medinote_token", data.token);
-        sessionStorage.setItem("medinote_user", JSON.stringify(data.user));
-        sessionStorage.setItem("medinote_user", JSON.stringify(data.user));
-        localStorage.removeItem("medinote_token");
-        localStorage.removeItem("medinote_user");
-      }
+      setSession({ token: data.token, user: data.user, remember: form.remember });
 
-      navigate("/app");
+      if (data.user?.onboarding_completed) {
+        navigate("/app");
+      } else {
+        navigate("/onboarding");
+      }
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -204,7 +198,8 @@ export default function Login() {
 
     if (!email) return setFpErr("Email is required.");
     if (!code) return setFpErr("Please enter the OTP code.");
-    if (!newPassword || newPassword.length < 8) return setFpErr("Password must be at least 8 characters.");
+    if (!newPassword || newPassword.length < 8)
+      return setFpErr("Password must be at least 8 characters.");
     if (fp.confirmPassword !== newPassword) return setFpErr("Passwords do not match.");
 
     try {
@@ -249,7 +244,9 @@ export default function Login() {
             <div className="auth__field auth__field--fit">
               <label className="auth__label">Email</label>
               <div className="auth__inputWrap auth__inputWrap--fit">
-                <span className="auth__icon">✉️</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-envelope" />
+                </span>
                 <input
                   className="auth__input"
                   name="email"
@@ -264,7 +261,9 @@ export default function Login() {
             <div className="auth__field auth__field--fit">
               <label className="auth__label">Password</label>
               <div className="auth__inputWrap auth__inputWrap--fit">
-                <span className="auth__icon">🔒</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-lock" />
+                </span>
                 <input
                   className="auth__input"
                   name="password"
@@ -307,11 +306,11 @@ export default function Login() {
               Create an account
             </Link>
 
-            <p className="auth__tiny auth__tiny--fit">Temporary storage only • Auto-delete after 30 days</p>
+            <p className="auth__tiny auth__tiny--fit">Secure access with email OTP verification.</p>
           </form>
         </div>
 
-        {/* HERO (right) — SAME STRUCTURE as Signup */}
+        {/* HERO (right) -- SAME STRUCTURE as Signup */}
         <div className="auth__panel auth__panel--hero auth__panel--fit">
           <div className="auth__heroCard auth__heroCard--fit">
             <div className="auth__heroTop auth__heroTop--fit">
@@ -341,16 +340,20 @@ export default function Login() {
           <div className="mn-modal__backdrop" />
           <div className="mn-modal__panel" onClick={(e) => e.stopPropagation()}>
             <button className="mn-modal__close" type="button" onClick={closeForgot} aria-label="Close">
-              ✕
+              <i className="bi bi-x-lg" />
             </button>
 
             <div className="mn-modal__header">
               <div className="mn-modal__title">
-                {fpStep === 1 ? "Reset your password" : fpStep === 2 ? "Enter OTP + new password" : "Password updated"}
+                {fpStep === 1
+                  ? "Reset your password"
+                  : fpStep === 2
+                  ? "Enter OTP + new password"
+                  : "Password updated"}
               </div>
               <div className="mn-modal__sub">
                 {fpStep === 1
-                  ? "We’ll send a 6-digit OTP to your email."
+                  ? "We'll send a 6-digit OTP to your email."
                   : fpStep === 2
                   ? `We sent a code to ${fp.email.trim() || "your email"}.`
                   : "Now you can login using your new password."}
@@ -441,7 +444,9 @@ export default function Login() {
               </div>
             ) : (
               <div className="mn-modal__body">
-                <div className="mn-modal__success">✅ Password updated successfully.</div>
+                <div className="mn-modal__success">
+                  <i className="bi bi-check-circle-fill" /> Password updated successfully.
+                </div>
 
                 <button className="mn-modal__btn mn-modal__btn--primary" onClick={goToLogin}>
                   Go to login

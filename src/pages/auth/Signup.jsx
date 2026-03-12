@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/auth.css";
 import doctorsImg from "../../assets/doctors.jpg";
@@ -51,9 +51,10 @@ export default function Signup() {
         email: form.email.trim(),
         phone: form.phone.trim(),
         password: form.password,
+        privacy_accepted: !!form.agree,
       });
 
-      // ✅ Go to verify page ONLY
+      // Go to verify page only
       navigate("/verify", { state: { email: form.email.trim() } });
     } catch (e2) {
       setErr(e2.message);
@@ -85,7 +86,9 @@ export default function Signup() {
             <div className="auth__field auth__field--fit">
               <label className="auth__label">Full name</label>
               <div className="auth__inputWrap auth__inputWrap--fit">
-                <span className="auth__icon">👤</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-person" />
+                </span>
                 <input
                   className="auth__input"
                   name="name"
@@ -100,7 +103,9 @@ export default function Signup() {
             <div className="auth__field auth__field--fit">
               <label className="auth__label">Email</label>
               <div className="auth__inputWrap auth__inputWrap--fit">
-                <span className="auth__icon">✉️</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-envelope" />
+                </span>
                 <input
                   className="auth__input"
                   name="email"
@@ -115,7 +120,9 @@ export default function Signup() {
             <div className="auth__field auth__field--fit">
               <label className="auth__label">Phone</label>
               <div className="auth__inputWrap auth__inputWrap--fit">
-                <span className="auth__icon">📞</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-telephone" />
+                </span>
                 <input
                   className="auth__input"
                   name="phone"
@@ -130,7 +137,9 @@ export default function Signup() {
             <div className="auth__field auth__field--fit">
               <label className="auth__label">Password</label>
               <div className="auth__inputWrap auth__inputWrap--fit">
-                <span className="auth__icon">🔒</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-lock" />
+                </span>
                 <input
                   className="auth__input"
                   name="password"

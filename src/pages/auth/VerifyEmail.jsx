@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../../styles/auth.css";
 import doctorsImg from "../../assets/doctors.jpg";
@@ -19,8 +19,7 @@ export default function VerifyEmail() {
 
   useEffect(() => {
     if (!emailFromState) {
-      // If user refreshes /verify, we still allow manual email entry.
-      // (no redirect, just keep form)
+      // If user refreshes /verify, allow manual email entry.
     }
   }, [emailFromState]);
 
@@ -38,7 +37,11 @@ export default function VerifyEmail() {
 
       // verified => token returned => login
       setSession({ token: data.token, user: data.user, remember: true });
-      navigate("/onboarding");
+      if (data.user?.onboarding_completed) {
+        navigate("/app");
+      } else {
+        navigate("/onboarding");
+      }
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -104,7 +107,9 @@ export default function VerifyEmail() {
             <div className="auth__field">
               <label className="auth__label">Email</label>
               <div className="auth__inputWrap">
-                <span className="auth__icon">✉️</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-envelope" />
+                </span>
                 <input
                   className="auth__input"
                   value={email}
@@ -118,7 +123,9 @@ export default function VerifyEmail() {
             <div className="auth__field">
               <label className="auth__label">6-digit code</label>
               <div className="auth__inputWrap">
-                <span className="auth__icon">🔢</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-shield-lock" />
+                </span>
                 <input
                   className="auth__input"
                   value={code}
@@ -138,7 +145,7 @@ export default function VerifyEmail() {
             </div>
 
             <button className="auth__btn auth__btn--primary" disabled={loading}>
-              {loading ? "Verifying..." : "Verify & Continue"}
+              {loading ? "Verifying..." : "Verify and Continue"}
             </button>
 
             <p className="auth__tiny">

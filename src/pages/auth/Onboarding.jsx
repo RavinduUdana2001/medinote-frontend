@@ -1,56 +1,88 @@
-import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/auth.css"; // reuse your auth style
-import { getUser, setSession } from "../../utils/authStorage";
+import { getUser, updateStoredUser } from "../../utils/authStorage";
+import { getMyProfile, updateOnboarding } from "../../api/profile.api";
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const user = getUser();
 
   const [form, setForm] = useState({
-    name: user?.name || "Dr. XYZ",
-    clinic: "",
-    specialty: "",
+    name: user?.name || "",
     phone: user?.phone || "",
-    city: "",
-    agree: false,
+    agree: !!user?.privacy_accepted,
   });
 
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const onContinue = (e) => {
+  useEffect(() => {
+    let ignore = false;
+
+    const loadProfile = async () => {
+      try {
+        const res = await getMyProfile();
+        if (ignore) return;
+
+        const profile = res.user || {};
+        updateStoredUser(profile);
+
+        if (profile.onboarding_completed) {
+          navigate("/app");
+          return;
+        }
+
+        setForm((p) => ({
+          ...p,
+          name: profile.name || p.name || "",
+          phone: profile.phone || p.phone || "",
+          agree: !!profile.privacy_accepted,
+        }));
+      } catch (error) {
+        if (!ignore) {
+          setErr(error.message || "Failed to load your profile.");
+        }
+      } finally {
+        if (!ignore) setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      ignore = true;
+    };
+  }, [navigate]);
+
+  const onContinue = async (e) => {
     e.preventDefault();
     setErr("");
 
     if (!form.name.trim()) return setErr("Please enter your name.");
-    if (!form.clinic.trim()) return setErr("Please enter clinic/hospital name.");
-    if (!form.specialty.trim()) return setErr("Please enter specialty.");
     if (!form.agree) return setErr("Please accept Privacy Policy.");
 
-    // ✅ UI-only save (frontend)
-    // You can later call backend: PUT /me or /profile
-    const existingToken =
-      localStorage.getItem("medinote_token") || sessionStorage.getItem("medinote_token");
+    try {
+      setLoading(true);
+      const res = await updateOnboarding({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        agree: form.agree,
+      });
 
-    const updatedUser = {
-      ...(user || {}),
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      clinic: form.clinic.trim(),
-      specialty: form.specialty.trim(),
-      city: form.city.trim(),
-      onboardingDone: true,
-    };
-
-    // keep token as-is
-    setSession({ token: existingToken, user: updatedUser, remember: true });
-
-    navigate("/app");
+      updateStoredUser(res.user);
+      navigate("/app");
+    } catch (error) {
+      setErr(error.message || "Failed to save onboarding details.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,9 +97,7 @@ export default function Onboarding() {
           </div>
 
           <h1 className="auth__title">Complete your profile</h1>
-          <p className="auth__subtitle">
-            Add a few details to personalize your documentation workspace.
-          </p>
+          <p className="auth__subtitle">Confirm your details to continue.</p>
 
           {err ? <div className="auth__alert">{err}</div> : null}
 
@@ -75,43 +105,19 @@ export default function Onboarding() {
             <div className="auth__field">
               <label className="auth__label">Full name</label>
               <div className="auth__inputWrap">
-                <span className="auth__icon">👤</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-person" />
+                </span>
                 <input className="auth__input" name="name" value={form.name} onChange={onChange} />
-              </div>
-            </div>
-
-            <div className="auth__field">
-              <label className="auth__label">Clinic / Hospital</label>
-              <div className="auth__inputWrap">
-                <span className="auth__icon">🏥</span>
-                <input
-                  className="auth__input"
-                  name="clinic"
-                  value={form.clinic}
-                  onChange={onChange}
-                  placeholder="City Medical Center"
-                />
-              </div>
-            </div>
-
-            <div className="auth__field">
-              <label className="auth__label">Specialty</label>
-              <div className="auth__inputWrap">
-                <span className="auth__icon">🩺</span>
-                <input
-                  className="auth__input"
-                  name="specialty"
-                  value={form.specialty}
-                  onChange={onChange}
-                  placeholder="General Practitioner"
-                />
               </div>
             </div>
 
             <div className="auth__field">
               <label className="auth__label">Phone</label>
               <div className="auth__inputWrap">
-                <span className="auth__icon">📞</span>
+                <span className="auth__icon" aria-hidden="true">
+                  <i className="bi bi-telephone" />
+                </span>
                 <input
                   className="auth__input"
                   name="phone"
@@ -122,34 +128,14 @@ export default function Onboarding() {
               </div>
             </div>
 
-            <div className="auth__field">
-              <label className="auth__label">City</label>
-              <div className="auth__inputWrap">
-                <span className="auth__icon">📍</span>
-                <input
-                  className="auth__input"
-                  name="city"
-                  value={form.city}
-                  onChange={onChange}
-                  placeholder="Colombo"
-                />
-              </div>
-            </div>
-
-            <div className="auth__field">
-              <label className="auth__label">Signature (upload later)</label>
-              <div className="auth__inputWrap">
-                <span className="auth__icon">✍️</span>
-                <input className="auth__input" value="Upload placeholder (UI only)" readOnly />
-              </div>
-            </div>
-
             <label className="auth__check auth__check--terms">
               <input type="checkbox" name="agree" checked={form.agree} onChange={onChange} />
               <span>I accept the Privacy Policy (required)</span>
             </label>
 
-            <button className="auth__btn auth__btn--primary">Continue to Dashboard</button>
+            <button className="auth__btn auth__btn--primary" disabled={loading || loadingProfile}>
+              {loading || loadingProfile ? "Saving..." : "Continue to Dashboard"}
+            </button>
           </form>
         </div>
       </div>

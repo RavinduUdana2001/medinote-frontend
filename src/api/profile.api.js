@@ -22,3 +22,8 @@ export async function uploadProfileImage(file) {
 
   return res.data;
 }
+
+export async function updateOnboarding(payload) {
+  const res = await api.put("/profile/onboarding", payload);
+  return res.data;
+}
