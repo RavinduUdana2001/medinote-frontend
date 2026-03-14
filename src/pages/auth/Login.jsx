@@ -64,12 +64,7 @@ export default function Login() {
 
       // store token + user
       setSession({ token: data.token, user: data.user, remember: form.remember });
-
-      if (data.user?.onboarding_completed) {
-        navigate("/app");
-      } else {
-        navigate("/onboarding");
-      }
+      navigate("/app");
     } catch (e2) {
       setErr(e2.message);
     } finally {

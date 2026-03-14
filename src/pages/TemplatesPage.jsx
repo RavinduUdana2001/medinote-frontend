@@ -8,6 +8,10 @@ import {
   deleteTemplate,
   setDefaultTemplate,
 } from "../api/templates.api";
+import {
+  clearDefaultTemplateSnapshot,
+  saveDefaultTemplateSnapshot,
+} from "../utils/defaultTemplateStorage";
 
 const SECTION_LIBRARY = [
   { key: "patient_info", label: "Patient Information" },
@@ -63,7 +67,6 @@ function buildPayloadFromForm(form) {
         key: section.key,
         label: section.label,
         enabled: true,
-        required: !!section.required,
         inputType: "textarea",
       })),
     },
@@ -127,18 +130,25 @@ export default function TemplatesPage() {
 
       const data = await getTemplates();
       const nextDefaultId = data.defaultTemplateId || null;
+      const nextSystemTemplates = (data.systemTemplates || []).map((t) =>
+        normalizeTemplate(t, nextDefaultId)
+      );
+      const nextCustomTemplates = (data.customTemplates || []).map((t) =>
+        normalizeTemplate(t, nextDefaultId)
+      );
+      const nextDefaultTemplate = [...nextSystemTemplates, ...nextCustomTemplates].find(
+        (template) => template.id === nextDefaultId
+      );
 
       setDefaultTemplateIdState(nextDefaultId);
-      setSystemTemplates(
-        (data.systemTemplates || []).map((t) =>
-          normalizeTemplate(t, nextDefaultId)
-        )
-      );
-      setCustomTemplates(
-        (data.customTemplates || []).map((t) =>
-          normalizeTemplate(t, nextDefaultId)
-        )
-      );
+      setSystemTemplates(nextSystemTemplates);
+      setCustomTemplates(nextCustomTemplates);
+
+      if (nextDefaultTemplate) {
+        saveDefaultTemplateSnapshot(nextDefaultTemplate);
+      } else {
+        clearDefaultTemplateSnapshot();
+      }
     } catch (err) {
       setPageError(err.message || "Failed to load templates.");
     } finally {
@@ -203,10 +213,10 @@ export default function TemplatesPage() {
       category: "general",
       templateType: "custom_template",
       sections: [
-        { key: "patient_info", label: "Patient Information", required: false },
-        { key: "chief_complaint", label: "Chief Complaint", required: true },
-        { key: "assessment", label: "Assessment", required: true },
-        { key: "plan", label: "Plan", required: true },
+        { key: "patient_info", label: "Patient Information" },
+        { key: "chief_complaint", label: "Chief Complaint" },
+        { key: "assessment", label: "Assessment" },
+        { key: "plan", label: "Plan" },
       ],
     });
     setFormOpen(true);
@@ -223,7 +233,6 @@ export default function TemplatesPage() {
       sections: (template.sections || []).map((s) => ({
         key: s.key,
         label: s.label,
-        required: !!s.required,
       })),
     });
     setFormOpen(true);
@@ -242,6 +251,9 @@ export default function TemplatesPage() {
     try {
       await setDefaultTemplate(templateId);
       setDefaultTemplateIdState(templateId);
+      const nextDefaultTemplate =
+        [...systemTemplates, ...customTemplates].find((template) => template.id === templateId) ||
+        null;
 
       setSystemTemplates((prev) =>
         prev.map((t) => ({ ...t, isDefault: t.id === templateId }))
@@ -253,6 +265,10 @@ export default function TemplatesPage() {
       setViewingTemplate((prev) =>
         prev ? { ...prev, isDefault: prev.id === templateId } : prev
       );
+
+      if (nextDefaultTemplate) {
+        saveDefaultTemplateSnapshot({ ...nextDefaultTemplate, isDefault: true });
+      }
     } catch (err) {
       setPageError(err.message || "Failed to set default template.");
     }
@@ -270,6 +286,7 @@ export default function TemplatesPage() {
 
       if (defaultTemplateId === template.id) {
         setDefaultTemplateIdState(null);
+        clearDefaultTemplateSnapshot();
       }
     } catch (err) {
       setPageError(err.message || "Failed to delete template.");
@@ -287,7 +304,6 @@ export default function TemplatesPage() {
         {
           key: section.key,
           label: section.label,
-          required: false,
         },
       ],
     }));
@@ -297,15 +313,6 @@ export default function TemplatesPage() {
     setForm((prev) => ({
       ...prev,
       sections: prev.sections.filter((item) => item.key !== key),
-    }));
-  };
-
-  const toggleRequired = (key) => {
-    setForm((prev) => ({
-      ...prev,
-      sections: prev.sections.map((item) =>
-        item.key === key ? { ...item, required: !item.required } : item
-      ),
     }));
   };
 
@@ -348,6 +355,14 @@ export default function TemplatesPage() {
 
         setCustomTemplates((prev) =>
           prev.map((item) => (item.id === updated.id ? updated : item))
+        );
+
+        if (updated.id === defaultTemplateId) {
+          saveDefaultTemplateSnapshot({ ...updated, isDefault: true });
+        }
+
+        setViewingTemplate((prev) =>
+          prev && prev.id === updated.id ? updated : prev
         );
       } else {
         const res = await createTemplate(payload);
@@ -559,9 +574,6 @@ export default function TemplatesPage() {
                   key={`${section.key}-${index}`}
                 >
                   <span>{section.label}</span>
-                  <span className="template-chip subtle">
-                    {section.required ? "Required" : "Optional"}
-                  </span>
                 </div>
               ))
             ) : (
@@ -694,15 +706,6 @@ export default function TemplatesPage() {
                           <div className="template-selected-name">
                             {section.label}
                           </div>
-
-                          <label className="template-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={!!section.required}
-                              onChange={() => toggleRequired(section.key)}
-                            />
-                            <span>Required</span>
-                          </label>
                         </div>
 
                         <div className="template-selected-actions">

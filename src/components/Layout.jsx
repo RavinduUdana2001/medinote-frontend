@@ -1,9 +1,10 @@
-﻿import React, { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useMemo, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import "../styles/ui.css";
 import "../styles/sidebar.css";
 import ConsultationPage from "../pages/ConsultationPage";
+import GeneratedNotePage from "../pages/GeneratedNotePage";
 import HistoryPage from "../pages/HistoryPage";
 import TemplatesPage from "../pages/TemplatesPage";
 import SettingsPage from "../pages/SettingsPage";
@@ -12,12 +13,21 @@ import { clearSession, getUser, updateStoredUser } from "../utils/authStorage";
 import { getMyProfile, uploadProfileImage } from "../api/profile.api";
 
 export default function Layout() {
-  const [active, setActive] = useState("consultation");
   const [currentUser, setCurrentUser] = useState(getUser());
   const [cropOpen, setCropOpen] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState("");
   const [uploadingHeaderImage, setUploadingHeaderImage] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const pathname = location.pathname || "/app";
+
+  const active = useMemo(() => {
+    if (pathname.startsWith("/app/history")) return "history";
+    if (pathname.startsWith("/app/templates")) return "templates";
+    if (pathname.startsWith("/app/settings")) return "settings";
+    return "consultation";
+  }, [pathname]);
 
   const handleLogout = () => {
     clearSession();
@@ -30,9 +40,6 @@ export default function Layout() {
         const res = await getMyProfile();
         setCurrentUser(res.user);
         updateStoredUser(res.user);
-        if (res.user && !res.user.onboarding_completed) {
-          navigate("/onboarding");
-        }
       } catch (error) {
         console.error("Failed to fetch current user:", error);
       }
@@ -51,43 +58,53 @@ export default function Layout() {
   }, []);
 
   const headerContent = useMemo(() => {
-    switch (active) {
-      case "history":
-        return {
-          title: "History",
-          subtitle: "View and manage previous consultation notes.",
-        };
-      case "templates":
-        return {
-          title: "Templates",
-          subtitle: "Create and manage your templates.",
-        };
-      case "settings":
-        return {
-          title: "Settings",
-          subtitle: "Manage your profile and preferences.",
-        };
-      default:
-        return {
-          title: "Start Consultation",
-          subtitle: "Record voice or type notes and generate editable notes.",
-        };
+    if (pathname.startsWith("/app/consultation/output")) {
+      return {
+        title: "Generated Note",
+        subtitle: "Review, edit, and export the generated consultation note.",
+      };
     }
-  }, [active]);
+
+    if (pathname.startsWith("/app/history")) {
+      return {
+        title: "History",
+        subtitle: "View and manage previous consultation notes.",
+      };
+    }
+
+    if (pathname.startsWith("/app/templates")) {
+      return {
+        title: "Templates",
+        subtitle: "Create and manage your templates.",
+      };
+    }
+
+    if (pathname.startsWith("/app/settings")) {
+      return {
+        title: "Settings",
+        subtitle: "Manage your profile and preferences.",
+      };
+    }
+
+    return {
+      title: "Start Consultation",
+      subtitle: "Capture notes, transcript, and preferences before generating the final note.",
+    };
+  }, [pathname]);
 
   const handleUserUpdated = (updatedUser) => {
     setCurrentUser(updatedUser);
     updateStoredUser(updatedUser);
   };
 
-  const handleSelectHeaderImage = (e) => {
-    const file = e.target.files?.[0];
+  const handleSelectHeaderImage = (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const previewUrl = URL.createObjectURL(file);
     setSelectedImageSrc(previewUrl);
     setCropOpen(true);
-    e.target.value = "";
+    event.target.value = "";
   };
 
   const handleCropDone = async (croppedFile) => {
@@ -108,24 +125,45 @@ export default function Layout() {
   const isPageScrollMode = active === "templates";
   const isContainedMode = !isPageScrollMode;
 
-  const renderPage = () => {
-    switch (active) {
-      case "consultation":
-        return <ConsultationPage />;
+  const handleSectionChange = (key) => {
+    switch (key) {
       case "history":
-        return <HistoryPage />;
+        navigate("/app/history");
+        return;
       case "templates":
-        return <TemplatesPage />;
+        navigate("/app/templates");
+        return;
       case "settings":
-        return (
-          <SettingsPage
-            currentUser={currentUser}
-            onUserUpdated={handleUserUpdated}
-          />
-        );
+        navigate("/app/settings");
+        return;
       default:
-        return <ConsultationPage />;
+        navigate("/app");
     }
+  };
+
+  const renderPage = () => {
+    if (pathname.startsWith("/app/consultation/output")) {
+      return <GeneratedNotePage />;
+    }
+
+    if (pathname.startsWith("/app/history")) {
+      return <HistoryPage />;
+    }
+
+    if (pathname.startsWith("/app/templates")) {
+      return <TemplatesPage />;
+    }
+
+    if (pathname.startsWith("/app/settings")) {
+      return (
+        <SettingsPage
+          currentUser={currentUser}
+          onUserUpdated={handleUserUpdated}
+        />
+      );
+    }
+
+    return <ConsultationPage />;
   };
 
   return (
@@ -133,7 +171,7 @@ export default function Layout() {
       <aside className="ui-sidebar-shell d-none d-lg-flex">
         <Sidebar
           active={active}
-          onChange={setActive}
+          onChange={handleSectionChange}
           userName={doctorName}
           userRole="Medical User"
           userImage={currentUser?.profile_image_url || ""}
@@ -259,7 +297,7 @@ export default function Layout() {
             <Sidebar
               active={active}
               onChange={(key) => {
-                setActive(key);
+                handleSectionChange(key);
                 const el = document.getElementById("sidebarOffcanvas");
                 if (el) {
                   const inst = window.bootstrap?.Offcanvas.getInstance(el);
@@ -287,4 +325,3 @@ export default function Layout() {
     </div>
   );
 }
-

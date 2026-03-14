@@ -1,28 +1,337 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import { getTemplates } from "../api/templates.api";
+import { transcribeVoice } from "../api/voice.api";
+import {
+  clearDefaultTemplateSnapshot,
+  getDefaultTemplateSnapshot,
+  saveDefaultTemplateSnapshot,
+} from "../utils/defaultTemplateStorage";
+import {
+  buildGeneratedConsultationDraft,
+  saveConsultationDraft,
+} from "../utils/consultationDraftStorage";
 
-/**
- * ✅ FULL UPDATED ConsultationPage.jsx
- * - Right side output matches your screenshot style:
- *   Header (Medical Report + patient) + 3 icon buttons
- *   4 section cards (Subjective/Objective/Assessment/Plan)
- *   Each section has Pencil + Copy (and Save/Cancel while editing)
- *   Footer buttons: Save and Complete / draft / Delete
- * - Mobile: Output panel becomes a real "output box" with internal scroll
- * - Keeps your previous section icon colors by using these classes:
- *   .rep-sec-icon.subjective / .objective / .assessment / .plan
- *
- * REQUIRE: Bootstrap Icons loaded in index.html:
- * <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
- */
+const CAPTURE_MODES = [
+  {
+    key: "dictate",
+    label: "Dictate",
+    description: "Capture a solo clinician dictation locally in the browser.",
+  },
+  {
+    key: "transcribe",
+    label: "Transcribe",
+    description:
+      "Capture a longer consultation conversation locally in the browser.",
+  },
+];
+
+const TONE_OPTIONS = [
+  { key: "professional", label: "Professional" },
+  { key: "formal", label: "Formal" },
+  { key: "casual", label: "Casual" },
+];
+
+const FORMAT_OPTIONS = [
+  { key: "paragraph", label: "Paragraph" },
+  { key: "bullet", label: "Bullet Point" },
+  { key: "summary", label: "Summary" },
+];
+
+const FOCUS_OPTIONS = [
+  { key: "follow_up", label: "Follow-Up" },
+  { key: "new_case", label: "New Case" },
+  { key: "review", label: "Clinical Review" },
+];
+
+const SYMPTOM_TOPICS = [
+  {
+    key: "constitutional",
+    label: "Constitutional",
+    symptoms: [
+      "Fever",
+      "Chills",
+      "Fatigue",
+      "Weight changes",
+      "Night sweats",
+      "Appetite loss",
+      "Insomnia",
+    ],
+  },
+  {
+    key: "eyes",
+    label: "Eyes",
+    symptoms: [
+      "Blurry vision",
+      "Eye pain",
+      "Redness",
+      "Discharge",
+      "Floaters",
+      "Dryness",
+    ],
+  },
+  {
+    key: "ent",
+    label: "ENT",
+    symptoms: [
+      "Hearing loss",
+      "Ear pain",
+      "Nasal congestion",
+      "Sore throat",
+      "Nosebleeds",
+      "Sinus pain",
+    ],
+  },
+  {
+    key: "cardiovascular",
+    label: "Cardiovascular",
+    symptoms: [
+      "Chest pain",
+      "Palpitations",
+      "Edema",
+      "Shortness of breath",
+      "Orthopnea",
+      "Claudication",
+    ],
+  },
+  {
+    key: "respiratory",
+    label: "Respiratory",
+    symptoms: [
+      "Cough",
+      "Wheezing",
+      "Shortness of breath",
+      "Hemoptysis",
+      "Chest tightness",
+      "Pleuritic pain",
+    ],
+  },
+  {
+    key: "gastrointestinal",
+    label: "Gastrointestinal",
+    symptoms: [
+      "Nausea/vomiting",
+      "Abdominal pain",
+      "Diarrhea",
+      "Constipation",
+      "Rectal bleeding",
+      "Heartburn",
+      "Difficulty swallowing",
+    ],
+  },
+  {
+    key: "genitourinary",
+    label: "Genitourinary",
+    symptoms: [
+      "Dysuria",
+      "Frequency",
+      "Urgency",
+      "Hematuria",
+      "Incontinence",
+      "Weak stream",
+    ],
+  },
+  {
+    key: "musculoskeletal",
+    label: "Musculoskeletal",
+    symptoms: [
+      "Joint pain",
+      "Muscle aches",
+      "Stiffness",
+      "Back pain",
+      "Swelling",
+      "Weakness",
+    ],
+  },
+  {
+    key: "skin",
+    label: "Skin",
+    symptoms: [
+      "Rash",
+      "Itching",
+      "Lumps",
+      "Dryness",
+      "Color changes",
+      "Bruising",
+    ],
+  },
+  {
+    key: "neurological",
+    label: "Neurological",
+    symptoms: [
+      "Headache",
+      "Dizziness",
+      "Numbness",
+      "Tingling",
+      "Weakness",
+      "Fainting",
+    ],
+  },
+  {
+    key: "psychiatric",
+    label: "Psychiatric",
+    symptoms: [
+      "Depression",
+      "Anxiety",
+      "Insomnia",
+      "Memory loss",
+      "Irritability",
+      "Hallucinations",
+    ],
+  },
+  {
+    key: "endocrine",
+    label: "Endocrine",
+    symptoms: [
+      "Heat intolerance",
+      "Cold intolerance",
+      "Thirst",
+      "Frequent urination",
+      "Sweating",
+      "Hair loss",
+    ],
+  },
+  {
+    key: "hematologic_lymphatic",
+    label: "Hematologic/Lymphatic",
+    symptoms: [
+      "Easy bruising",
+      "Bleeding",
+      "Lymph swelling",
+      "Anemia symptoms",
+      "Fatigue",
+      "Infections",
+    ],
+  },
+  {
+    key: "allergic_immunologic",
+    label: "Allergic/Immunologic",
+    symptoms: ["Hives", "Itching", "Swelling", "Runny nose", "Sneezing"],
+  },
+];
+
+function formatRecordingTime(totalSeconds) {
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function mergeFloat32Chunks(chunks) {
+  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const result = new Float32Array(totalLength);
+  let offset = 0;
+
+  chunks.forEach((chunk) => {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  });
+
+  return result;
+}
+
+function downsampleToRate(samples, sourceRate, targetRate) {
+  if (!samples.length || sourceRate === targetRate) {
+    return samples;
+  }
+
+  const sampleRateRatio = sourceRate / targetRate;
+  const newLength = Math.max(1, Math.round(samples.length / sampleRateRatio));
+  const result = new Float32Array(newLength);
+
+  let offsetResult = 0;
+  let offsetBuffer = 0;
+
+  while (offsetResult < result.length) {
+    const nextOffsetBuffer = Math.min(
+      samples.length,
+      Math.round((offsetResult + 1) * sampleRateRatio),
+    );
+
+    let accumulated = 0;
+    let count = 0;
+
+    for (let i = offsetBuffer; i < nextOffsetBuffer; i += 1) {
+      accumulated += samples[i];
+      count += 1;
+    }
+
+    result[offsetResult] = count > 0 ? accumulated / count : 0;
+    offsetResult += 1;
+    offsetBuffer = nextOffsetBuffer;
+  }
+
+  return result;
+}
+
+function encodeWav(samples, sampleRate) {
+  const bytesPerSample = 2;
+  const blockAlign = bytesPerSample;
+  const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+  const view = new DataView(buffer);
+
+  function writeString(offset, value) {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset + index, value.charCodeAt(index));
+    }
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + samples.length * bytesPerSample, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeString(36, "data");
+  view.setUint32(40, samples.length * bytesPerSample, true);
+
+  let offset = 44;
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[index]));
+    view.setInt16(
+      offset,
+      sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+      true,
+    );
+    offset += bytesPerSample;
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+function normalizeSamples(samples, targetPeak = 0.92) {
+  if (!samples.length) return samples;
+
+  let peak = 0;
+  for (let index = 0; index < samples.length; index += 1) {
+    const amplitude = Math.abs(samples[index]);
+    if (amplitude > peak) peak = amplitude;
+  }
+
+  if (!peak || peak >= targetPeak) return samples;
+
+  const scale = targetPeak / peak;
+  const normalized = new Float32Array(samples.length);
+  for (let index = 0; index < samples.length; index += 1) {
+    normalized[index] = Math.max(
+      -1,
+      Math.min(1, samples[index] * scale),
+    );
+  }
+
+  return normalized;
+}
 
 export default function ConsultationPage() {
-  // ---------------------------
-  // Patient + Modal
-  // ---------------------------
+  const navigate = useNavigate();
+
   const [patient, setPatient] = useState(null);
   const [showPatientModal, setShowPatientModal] = useState(false);
-
   const [patientForm, setPatientForm] = useState({
     name: "",
     age: "",
@@ -33,101 +342,196 @@ export default function ConsultationPage() {
     notes: "",
   });
 
-  // ---------------------------
-  // Symptoms
-  // ---------------------------
-  const symptoms = useMemo(
-    () => [
-      "Fever",
-      "Cough",
-      "Headache",
-      "Sore throat",
-      "Body pain",
-      "Vomiting",
-      "Diarrhea",
-      "Dizziness",
-    ],
-    []
-  );
+  const [selectedTopic, setSelectedTopic] = useState(SYMPTOM_TOPICS[0].key);
   const [selectedSymptoms, setSelectedSymptoms] = useState(["Fever", "Cough"]);
+  const [tone, setTone] = useState("professional");
+  const [outputFormat, setOutputFormat] = useState("paragraph");
+  const [visitFocus, setVisitFocus] = useState("follow_up");
+  const [doctorNote, setDoctorNote] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState(
+    getDefaultTemplateSnapshot(),
+  );
+  const [templateLoading, setTemplateLoading] = useState(false);
 
-  // ---------------------------
-  // Template preview (optional)
-  // ---------------------------
-  const selectedTemplate = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("selectedTemplate") || "null");
-    } catch {
-      return null;
-    }
-  }, []);
+  const [transcript, setTranscript] = useState("");
 
-  // ---------------------------
-  // Doctor note
-  // ---------------------------
-  const [doctorNote, setDoctorNote] = useState(
-    "Please keep the note short and clear. Patient is a university student."
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [captureMode, setCaptureMode] = useState("dictate");
+  const [recordingSupported, setRecordingSupported] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !!(window.AudioContext || window.webkitAudioContext) &&
+      !!navigator.mediaDevices?.getUserMedia,
+  );
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordingStatus, setRecordingStatus] = useState(
+    "Ready to record. Stop anytime and the audio will be translated to English.",
+  );
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const mediaStreamRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const audioSourceRef = useRef(null);
+  const processorNodeRef = useRef(null);
+  const silentGainRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const recordingPausedRef = useRef(false);
+  const sourceSampleRateRef = useRef(16000);
+  const recordingIntervalRef = useRef(null);
+  const recordingStartedAtRef = useRef(null);
+  const accumulatedRecordingMsRef = useRef(0);
+
+  const currentTopic = useMemo(
+    () =>
+      SYMPTOM_TOPICS.find((topic) => topic.key === selectedTopic) ||
+      SYMPTOM_TOPICS[0],
+    [selectedTopic],
   );
 
-  // ---------------------------
-  // Recorder swipe
-  // ---------------------------
-  const [recSlide, setRecSlide] = useState(0);
-  const touch = useRef({ x0: 0, dx: 0, dragging: false });
+  const selectedCaptureMode = useMemo(
+    () =>
+      CAPTURE_MODES.find((mode) => mode.key === captureMode) ||
+      CAPTURE_MODES[0],
+    [captureMode],
+  );
+  const showTranscriptPanel = Boolean(transcript.trim());
 
-  const onTouchStart = (e) => {
-    const x = e.touches?.[0]?.clientX ?? 0;
-    touch.current = { x0: x, dx: 0, dragging: true };
-  };
-  const onTouchMove = (e) => {
-    if (!touch.current.dragging) return;
-    const x = e.touches?.[0]?.clientX ?? 0;
-    touch.current.dx = x - touch.current.x0;
-  };
-  const onTouchEnd = () => {
-    if (!touch.current.dragging) return;
-    const dx = touch.current.dx;
-    const threshold = 40;
-    if (dx < -threshold) setRecSlide(1);
-    if (dx > threshold) setRecSlide(0);
-    touch.current.dragging = false;
-    touch.current.dx = 0;
+  const stopRecordingTicker = () => {
+    if (recordingIntervalRef.current) {
+      window.clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
   };
 
-  // ---------------------------
-  // Output report (NO tabs)
-  // ---------------------------
-  const [report, setReport] = useState({
-    title: "Medical Report",
-    subjective:
-      "Symptoms : Fever, cough. Patient reports fever and cough for 2 days. Mild sore throat and headache.",
-    objective:
-      "Temp 38.2°C. Throat mildly erythematous. Chest clear. No signs of dehydration.",
-    assessment:
-      "Likely viral URTI. Consider testing if persistent fever or worsening throat pain.",
-    plan:
-      "Rest, hydration, paracetamol PRN, warm saline gargles. Follow-up if not improved in 48–72 hours.",
-  });
+  const getLiveRecordingMs = () => {
+    const elapsedSinceResume = recordingStartedAtRef.current
+      ? Date.now() - recordingStartedAtRef.current
+      : 0;
 
-  // Section editing (one section at a time)
-  const [editingKey, setEditingKey] = useState(null);
-  const [editText, setEditText] = useState("");
+    return accumulatedRecordingMsRef.current + elapsedSinceResume;
+  };
 
-  // lock body scroll when patient modal open
+  const syncRecordingClock = () => {
+    setRecordingSeconds(Math.max(0, Math.floor(getLiveRecordingMs() / 1000)));
+  };
+
+  const startRecordingTicker = () => {
+    stopRecordingTicker();
+    recordingIntervalRef.current = window.setInterval(syncRecordingClock, 250);
+  };
+
+  const cleanupMediaStream = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (showPatientModal) {
-      const prev = document.body.style.overflow;
+      const previous = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-      return () => (document.body.style.overflow = prev);
+
+      return () => {
+        document.body.style.overflow = previous;
+      };
     }
   }, [showPatientModal]);
 
-  // ---------------------------
-  // Helpers
-  // ---------------------------
-  const toggleSymptom = (s) => {
+  useEffect(() => {
+    const loadDefaultTemplate = async () => {
+      try {
+        setTemplateLoading(true);
+        const data = await getTemplates();
+        const allTemplates = [
+          ...(data.systemTemplates || []),
+          ...(data.customTemplates || []),
+        ];
+        const defaultTemplate =
+          allTemplates.find(
+            (template) => template.id === data.defaultTemplateId,
+          ) || null;
+
+        if (defaultTemplate) {
+          const normalizedTemplate = {
+            id: defaultTemplate.id,
+            name: defaultTemplate.name,
+            description: defaultTemplate.description || "",
+            category: defaultTemplate.category || "general",
+            visibility: defaultTemplate.visibility,
+            contentJson: defaultTemplate.contentJson || { sections: [] },
+            sections: Array.isArray(defaultTemplate.contentJson?.sections)
+              ? defaultTemplate.contentJson.sections
+              : [],
+            isDefault: true,
+          };
+
+          setSelectedTemplate(normalizedTemplate);
+          saveDefaultTemplateSnapshot(normalizedTemplate);
+        } else {
+          setSelectedTemplate(null);
+          clearDefaultTemplateSnapshot();
+        }
+      } catch (error) {
+        console.error("[consultation] Failed to load default template:", error);
+      } finally {
+        setTemplateLoading(false);
+      }
+    };
+
+    loadDefaultTemplate();
+  }, []);
+
+  useEffect(() => {
+    setRecordingSupported(
+      typeof window !== "undefined" &&
+        !!(window.AudioContext || window.webkitAudioContext) &&
+        !!navigator.mediaDevices?.getUserMedia,
+    );
+  }, []);
+
+  const cleanupAudioProcessing = async () => {
+    if (processorNodeRef.current) {
+      processorNodeRef.current.disconnect();
+      processorNodeRef.current.onaudioprocess = null;
+      processorNodeRef.current = null;
+    }
+
+    if (audioSourceRef.current) {
+      audioSourceRef.current.disconnect();
+      audioSourceRef.current = null;
+    }
+
+    if (silentGainRef.current) {
+      silentGainRef.current.disconnect();
+      silentGainRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      try {
+        await audioContextRef.current.close();
+      } catch (error) {
+        console.error("[voice][frontend] Failed to close AudioContext", error);
+      }
+      audioContextRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopRecordingTicker();
+      cleanupMediaStream();
+      cleanupAudioProcessing();
+    };
+  }, []);
+
+  const toggleSymptom = (symptom) => {
     setSelectedSymptoms((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+      prev.includes(symptom)
+        ? prev.filter((item) => item !== symptom)
+        : [...prev, symptom],
     );
   };
 
@@ -135,6 +539,7 @@ export default function ConsultationPage() {
     if (patient) setPatientForm({ ...patient });
     setShowPatientModal(true);
   };
+
   const closePatientModal = () => setShowPatientModal(false);
 
   const savePatient = () => {
@@ -142,498 +547,923 @@ export default function ConsultationPage() {
     setShowPatientModal(false);
   };
 
-  const generateOutput = () => {
-    // sample generation only (connect API later)
-    const sym = selectedSymptoms.length ? selectedSymptoms.join(", ") : "N/A";
-    setReport((r) => ({
-      ...r,
-      title: "Medical Report",
-      subjective: `Symptoms : ${sym}. Patient reports fever and cough for 2 days. Mild sore throat and headache.`,
-    }));
-    setEditingKey(null);
-    setEditText("");
-  };
+  const startRecording = async () => {
+    if (
+      !recordingSupported ||
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
+      setRecordingStatus(
+        "Microphone recording is not supported in this browser.",
+      );
+      return;
+    }
 
-  const copyText = async (text) => {
     try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      console.log("[voice][frontend] startRecording called", {
+        captureMode,
+      });
+
+      await cleanupAudioProcessing();
+      cleanupMediaStream();
+      recordedChunksRef.current = [];
+      recordingPausedRef.current = false;
+      accumulatedRecordingMsRef.current = 0;
+      recordingStartedAtRef.current = Date.now();
+      sourceSampleRateRef.current = 16000;
+      setTranscript("");
+      setRecordingSeconds(0);
+      setIsPaused(false);
+      setIsTranscribing(false);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      });
+
+      mediaStreamRef.current = stream;
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      audioContextRef.current = audioContext;
+      sourceSampleRateRef.current = audioContext.sampleRate;
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
+      const audioSource = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      const silentGain = audioContext.createGain();
+      silentGain.gain.value = 0;
+
+      processor.onaudioprocess = (event) => {
+        if (recordingPausedRef.current) return;
+
+        const inputChannel = event.inputBuffer.getChannelData(0);
+        recordedChunksRef.current.push(new Float32Array(inputChannel));
+      };
+
+      audioSource.connect(processor);
+      processor.connect(silentGain);
+      silentGain.connect(audioContext.destination);
+
+      audioSourceRef.current = audioSource;
+      processorNodeRef.current = processor;
+      silentGainRef.current = silentGain;
+
+      console.log("[voice][frontend] PCM recorder created", {
+        sampleRate: audioContext.sampleRate,
+        bufferSize: 4096,
+      });
+
+      setIsRecording(true);
+      setRecordingStatus(
+        captureMode === "dictate"
+          ? "Dictation recording started. You can pause, resume, or stop at any time."
+          : "Conversation recording started. Pause or stop whenever the consultation is complete.",
+      );
+      startRecordingTicker();
+    } catch (error) {
+      console.error("[voice][frontend] Failed to start recording:", error);
+      await cleanupAudioProcessing();
+      cleanupMediaStream();
+      stopRecordingTicker();
+      setIsRecording(false);
+      setIsPaused(false);
+      setRecordingStatus(
+        "Microphone access was blocked or unavailable. Please allow access and try again.",
+      );
     }
   };
 
-  const startEdit = (key) => {
-    setEditingKey(key);
-    setEditText(report?.[key] || "");
+  const pauseRecording = () => {
+    if (!isRecording || isPaused) return;
+
+    if (recordingStartedAtRef.current) {
+      accumulatedRecordingMsRef.current +=
+        Date.now() - recordingStartedAtRef.current;
+      recordingStartedAtRef.current = null;
+    }
+
+    recordingPausedRef.current = true;
+    syncRecordingClock();
+    stopRecordingTicker();
+    setIsPaused(true);
+    setRecordingStatus(
+      "Recording paused. Resume when you are ready to continue.",
+    );
+
+    console.log("[voice][frontend] recording paused");
   };
 
-  const cancelEdit = () => {
-    setEditingKey(null);
-    setEditText("");
+  const resumeRecording = async () => {
+    if (!isRecording || !isPaused) return;
+
+    if (audioContextRef.current?.state === "suspended") {
+      await audioContextRef.current.resume();
+    }
+
+    recordingPausedRef.current = false;
+    recordingStartedAtRef.current = Date.now();
+    startRecordingTicker();
+    setIsPaused(false);
+    setRecordingStatus(
+      captureMode === "dictate"
+        ? "Dictation recording resumed."
+        : "Conversation recording resumed.",
+    );
+
+    console.log("[voice][frontend] recording resumed");
   };
 
-  const saveEdit = () => {
-    if (!editingKey) return;
-    setReport((prev) => ({ ...prev, [editingKey]: editText }));
-    setEditingKey(null);
-    setEditText("");
+  const stopRecording = async () => {
+    if (!isRecording) return;
+
+    console.log("[voice][frontend] stopRecording called", {
+      chunksSoFar: recordedChunksRef.current.length,
+    });
+
+    setRecordingStatus("Stopping recording and preparing audio...");
+
+    try {
+      if (recordingStartedAtRef.current) {
+        accumulatedRecordingMsRef.current +=
+          Date.now() - recordingStartedAtRef.current;
+        recordingStartedAtRef.current = null;
+      }
+
+      recordingPausedRef.current = true;
+      stopRecordingTicker();
+      syncRecordingClock();
+
+      const mergedSamples = mergeFloat32Chunks(recordedChunksRef.current);
+      const downsampledSamples = downsampleToRate(
+        mergedSamples,
+        sourceSampleRateRef.current,
+        16000,
+      );
+      const normalizedSamples = normalizeSamples(downsampledSamples);
+
+      console.log("[voice][frontend] final PCM audio", {
+        sourceSampleRate: sourceSampleRateRef.current,
+        outputSampleRate: 16000,
+        originalSampleCount: mergedSamples.length,
+        downsampledSampleCount: downsampledSamples.length,
+        sampleCount: normalizedSamples.length,
+        chunks: recordedChunksRef.current.length,
+      });
+
+      await cleanupAudioProcessing();
+      cleanupMediaStream();
+
+      if (!normalizedSamples.length) {
+        setRecordingStatus(
+          "Recording stopped, but no audio samples were captured. Please try again.",
+        );
+        return;
+      }
+
+      const audioBlob = encodeWav(normalizedSamples, 16000);
+      const durationSeconds = Number(
+        (normalizedSamples.length / 16000).toFixed(2),
+      );
+
+      console.log("[voice][frontend] final WAV blob", {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        durationSeconds,
+      });
+
+      if (!audioBlob.size || audioBlob.size <= 0) {
+        setRecordingStatus(
+          "Recording produced an empty WAV file. Please record again.",
+        );
+        return;
+      }
+
+      setRecordingStatus(
+        durationSeconds > 30
+          ? "Long recording detected. Processing the audio now. This can take a little longer."
+          : "Uploading audio for transcription...",
+      );
+      setIsTranscribing(true);
+
+      const audioFile = new File(
+        [audioBlob],
+        `consultation-${Date.now()}.wav`,
+        {
+          type: "audio/wav",
+        },
+      );
+      const transcription = await transcribeVoice(audioFile, {
+        mode: "translate",
+        captureMode,
+        preferredLanguageCode: captureMode === "dictate" ? "en-IN" : "unknown",
+        durationSeconds,
+        enableDiarization: captureMode === "transcribe",
+        numSpeakers: captureMode === "transcribe" ? 2 : undefined,
+      });
+
+      setTranscript(transcription.transcript || "");
+      setRecordingStatus(
+        captureMode === "transcribe"
+          ? "Conversation transcript ready. Review the full text on the right."
+          : "Transcription complete. Review and edit the text on the right.",
+      );
+    } catch (error) {
+      console.error("[voice][frontend] stopRecording failed", error);
+      setRecordingStatus(
+        error?.message?.includes("could not detect clear speech")
+          ? "Speech was not detected clearly. Try speaking a bit closer to the mic. English dictation mode now retries automatically."
+          : error?.message ||
+          "Recording was saved, but transcription failed. Please try again.",
+      );
+    } finally {
+      setIsTranscribing(false);
+      setIsRecording(false);
+      setIsPaused(false);
+    }
   };
 
-  const exportPDF = () => alert("Export PDF (connect later)");
-  const shareReport = () => alert("Share (connect later)");
+  const generateNote = () => {
+    const draft = buildGeneratedConsultationDraft({
+      patient,
+      selectedSymptoms,
+      doctorNote,
+      transcript,
+      selectedTemplate,
+      tone,
+      outputFormat,
+      visitFocus,
+    });
 
-  const saveAndComplete = () => alert("Save and Complete (connect later)");
-  const saveDraft = () => alert("Save Draft (connect later)");
-  const deleteReport = () => {
-    if (window.confirm("Delete this report?")) alert("Deleted (connect later)");
+    setIsGenerating(true);
+
+    window.setTimeout(() => {
+      saveConsultationDraft(draft);
+      setTranscript("");
+      setRecordingStatus(
+        "Ready to record. Stop anytime and the audio will be translated to English.",
+      );
+      navigate("/app/consultation/output");
+    }, 650);
   };
-
-  const sections = useMemo(
-    () => [
-      { key: "subjective", label: "Subjective", icon: "bi-chat-left-text" },
-      { key: "objective", label: "Objective", icon: "bi-clipboard2-pulse" },
-      { key: "assessment", label: "Assessment", icon: "bi-activity" },
-      { key: "plan", label: "Plan", icon: "bi-list-check" },
-    ],
-    []
-  );
 
   return (
-    <div className="consult-page">
-      <div className="consult-body-grid">
-        {/* ===================== LEFT SIDE (Inputs) ===================== */}
-        <div className="consult-col consult-left">
-          {/* Patient details */}
-          <div className="ui-card consult-card">
-            <div className="consult-card-head">
-              <div>
-                <div className="consult-title">Patient Details</div>
-                <div className="consult-sub">Optional – add / edit patient</div>
-              </div>
-
-              <button
-                className="btn btn-primary btn-sm consult-add-btn"
-                type="button"
-                onClick={openPatientModal}
-              >
-                <i className="bi bi-person-plus me-2" />
-                {patient ? "Edit" : "Add"}
-              </button>
-            </div>
-
-            {patient ? (
-              <div className="patient-mini">
-                <div className="patient-mini-row">
-                  <span>Name</span>
-                  <b>{patient.name || "-"}</b>
-                </div>
-                <div className="patient-mini-row">
-                  <span>Age</span>
-                  <b>{patient.age || "-"}</b>
-                </div>
-                <div className="patient-mini-row">
-                  <span>Gender</span>
-                  <b>{patient.gender || "-"}</b>
-                </div>
-                <div className="patient-mini-row">
-                  <span>Phone</span>
-                  <b>{patient.phone || "-"}</b>
-                </div>
-              </div>
-            ) : (
-              <div className="consult-empty">
-                No patient added yet. Click <b>Add</b> to enter details.
-              </div>
-            )}
-          </div>
-
-          {/* Recording */}
-          <div className="ui-card consult-card">
-            <div className="consult-card-head">
-              <div>
-                <div className="consult-title">Recording</div>
-                <div className="consult-sub">Swipe Dictate ↔ Transcript</div>
+    <div className="consult-page consult-page-single">
+      <div className="consult-single-column">
+        <div className="ui-card consult-card consult-card-elevated">
+          <div className="consult-card-head">
+            <div>
+              <div className="consult-title">Patient Details</div>
+              <div className="consult-sub">
+                Start by entering the patient profile
               </div>
             </div>
 
-            <div
-              className="rec-swipe-shell"
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
+            <button
+              className="btn btn-primary btn-sm consult-add-btn"
+              type="button"
+              onClick={openPatientModal}
             >
-              <div
-                className="rec-swipe-track"
-                style={{ transform: `translateX(-${recSlide * 50}%)` }}
-              >
-                <div className="rec-swipe-slide">
-                  <div className="rec-panel">
-                    <div className="rec-center">
-                      <button className="rec-mic-btn" type="button">
-                        <i className="bi bi-mic-fill" />
-                      </button>
-                      <div className="rec-hint">Tap to start recording</div>
-                      <div className="rec-meta">Swipe ← → to switch</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rec-swipe-slide">
-                  <div className="rec-panel">
-                    <div className="rec-transcript">
-                      <div className="rec-transcript-title">Live Transcript</div>
-                      <div className="rec-transcript-box">
-                        fever… cough… sore throat… (sample transcript)
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rec-switch">
-              <button
-                type="button"
-                className={`rec-switch-btn ${recSlide === 0 ? "active" : ""}`}
-                onClick={() => setRecSlide(0)}
-              >
-                <i className="bi bi-mic me-2" />
-                Dictate
-              </button>
-              <button
-                type="button"
-                className={`rec-switch-btn ${recSlide === 1 ? "active" : ""}`}
-                onClick={() => setRecSlide(1)}
-              >
-                <i className="bi bi-card-text me-2" />
-                Transcript
-              </button>
-            </div>
-
-            <div className="rec-dots">
-              <span className={`rec-dot ${recSlide === 0 ? "active" : ""}`} />
-              <span className={`rec-dot ${recSlide === 1 ? "active" : ""}`} />
-            </div>
+              <i className="bi bi-person-plus me-2" />
+              {patient ? "Edit" : "Add"}
+            </button>
           </div>
 
-          {/* Symptoms */}
-          <div className="ui-card consult-card">
-            <div className="consult-card-head">
-              <div>
-                <div className="consult-title">Symptoms</div>
-                <div className="consult-sub">Tap to select</div>
+          {patient ? (
+            <div className="patient-mini patient-mini-grid">
+              <div className="patient-mini-row">
+                <span>Name</span>
+                <b>{patient.name || "-"}</b>
+              </div>
+              <div className="patient-mini-row">
+                <span>Age</span>
+                <b>{patient.age || "-"}</b>
+              </div>
+              <div className="patient-mini-row">
+                <span>Gender</span>
+                <b>{patient.gender || "-"}</b>
+              </div>
+              <div className="patient-mini-row">
+                <span>Phone</span>
+                <b>{patient.phone || "-"}</b>
               </div>
             </div>
-
-            <div className="symptom-chips">
-              {symptoms.map((s) => {
-                const active = selectedSymptoms.includes(s);
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`sym-chip ${active ? "active" : ""}`}
-                    onClick={() => toggleSymptom(s)}
-                  >
-                    {s}
-                  </button>
-                );
-              })}
+          ) : (
+            <div className="consult-empty">
+              No patient added yet. Use the add button to create the patient
+              profile.
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Template (simple preview) */}
-          <div className="ui-card consult-card">
+        <div className="consult-compact-grid">
+          <div className="ui-card consult-card consult-card-elevated">
             <div className="consult-card-head">
               <div>
                 <div className="consult-title">Template</div>
-                <div className="consult-sub">Selected template preview</div>
+                <div className="consult-sub">
+                  Default template used for generation
+                </div>
               </div>
             </div>
 
-            {selectedTemplate ? (
-              <div className="template-mini">
-                <div className="template-mini-title">{selectedTemplate.name}</div>
-                <div className="template-mini-desc">
-                  {selectedTemplate.description || "Template preview..."}
+            {templateLoading ? (
+              <div className="consult-empty">Loading default template...</div>
+            ) : selectedTemplate ? (
+              <div className="consult-template-compact">
+                <div>
+                  <div className="template-mini-title">
+                    {selectedTemplate.name}
+                  </div>
+                  <div className="template-mini-desc">
+                    {selectedTemplate.description ||
+                      "Default structure ready for this note."}
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="consult-template-link"
+                  onClick={() => navigate("/app/templates")}
+                >
+                  Change
+                </button>
               </div>
             ) : (
-              <div className="consult-empty">No template selected yet.</div>
+              <div className="consult-template-empty">
+                <div className="consult-empty">
+                  No default template selected yet.
+                </div>
+                <button
+                  type="button"
+                  className="consult-template-link"
+                  onClick={() => navigate("/app/templates")}
+                >
+                  Go to Templates
+                </button>
+              </div>
             )}
           </div>
 
-          {/* Doctor note */}
-          <div className="ui-card consult-card">
+          <div className="ui-card consult-card consult-card-elevated">
             <div className="consult-card-head">
               <div>
-                <div className="consult-title">Doctor Note</div>
-                <div className="consult-sub">Extra note to send to AI</div>
+                <div className="consult-title">Note Preferences</div>
+                <div className="consult-sub">
+                  Choose the output style before generation
+                </div>
               </div>
             </div>
 
-            <textarea
-              className="form-control consult-textarea"
-              rows={4}
-              value={doctorNote}
-              onChange={(e) => setDoctorNote(e.target.value)}
+            <PreferenceGroup
+              label="Tone"
+              options={TONE_OPTIONS}
+              value={tone}
+              onChange={setTone}
             />
-          </div>
-
-          {/* Generate */}
-          <div className="consult-actions">
-            <button className="btn btn-primary w-100" onClick={generateOutput}>
-              Generate Output →
-            </button>
+            <PreferenceGroup
+              label="Format"
+              options={FORMAT_OPTIONS}
+              value={outputFormat}
+              onChange={setOutputFormat}
+            />
+            <PreferenceGroup
+              label="Visit Type"
+              options={FOCUS_OPTIONS}
+              value={visitFocus}
+              onChange={setVisitFocus}
+            />
           </div>
         </div>
 
-        {/* ===================== RIGHT SIDE (Medical Report Output) ===================== */}
-        <div className="consult-col consult-right">
-          <div className="ui-card consult-card consult-output rep-shell">
-            {/* Header (blue focus border like screenshot) */}
-            <div className="rep-header rep-header-focus">
-              <div className="rep-title-wrap">
-                <div className="rep-title">{report?.title || "Medical Report"}</div>
-                <div className="rep-sub">
-                  {patient?.name
-                    ? `Sample patient : ${patient.name}`
-                    : "Sample patient : Nimal Perera"}
-                </div>
+        <div className="ui-card consult-card consult-card-elevated">
+          <div className="consult-card-head">
+            <div>
+              <div className="consult-title">Symptoms</div>
+              <div className="consult-sub">
+                Pick a topic first, then choose one or more symptoms
               </div>
-
-              <div className="rep-head-actions">
-                <button
-                  type="button"
-                  className="icon-btn"
-                  title="Edit full report"
-                  onClick={() => alert("Full report edit (optional)")}
-                >
-                  <i className="bi bi-pencil-fill" />
-                </button>
-
-                <button type="button" className="icon-btn" title="Export PDF" onClick={exportPDF}>
-                  <i className="bi bi-download" />
-                </button>
-
-                <button type="button" className="icon-btn" title="Share" onClick={shareReport}>
-                  <i className="bi bi-share" />
-                </button>
-              </div>
-            </div>
-
-            {/* Body (scroll inside output on mobile) */}
-            <div className="rep-scroll rep-scroll-bg">
-              {sections.map((s) => {
-                const value = report?.[s.key] || "";
-                const isEditing = editingKey === s.key;
-
-                return (
-                  <div className="rep-section" key={s.key}>
-                    <div className="rep-sec-head">
-                      <div className="rep-sec-left">
-                        {/* ✅ keeps your previous icon colors */}
-                        <span className={`rep-sec-icon ${s.key}`}>
-                          <i className={`bi ${s.icon}`} />
-                        </span>
-                        <div className="rep-sec-title">{s.label}</div>
-                      </div>
-
-                      <div className="rep-sec-actions">
-                        {!isEditing ? (
-                          <button
-                            type="button"
-                            className="icon-btn"
-                            title="Edit"
-                            onClick={() => startEdit(s.key)}
-                          >
-                            <i className="bi bi-pencil-fill" />
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              title="Save"
-                              onClick={saveEdit}
-                            >
-                              <i className="bi bi-check2" />
-                            </button>
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              title="Cancel"
-                              onClick={cancelEdit}
-                            >
-                              <i className="bi bi-x-lg" />
-                            </button>
-                          </>
-                        )}
-
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          title="Copy"
-                          onClick={() => copyText(value)}
-                        >
-                          <i className="bi bi-copy" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {!isEditing ? (
-                      <div className="rep-sec-body">{value}</div>
-                    ) : (
-                      <textarea
-                        className="form-control rep-editbox"
-                        rows={3}
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer (like screenshot) */}
-            <div className="rep-footer rep-footer-fixed">
-              <button className="btn btn-light rep-btn" type="button" onClick={saveAndComplete}>
-                Save and Complete
-              </button>
-
-              <button className="btn btn-light rep-btn" type="button" onClick={saveDraft}>
-                draft
-              </button>
-
-              <button className="btn btn-danger rep-btn px-4" type="button" onClick={deleteReport}>
-                Delete
-              </button>
             </div>
           </div>
+
+          <div className="consult-symptom-topicbar">
+            <label htmlFor="symptom-topic">Symptom Topic</label>
+            <select
+              id="symptom-topic"
+              className="consult-topic-select"
+              value={selectedTopic}
+              onChange={(event) => setSelectedTopic(event.target.value)}
+            >
+              {SYMPTOM_TOPICS.map((topic) => (
+                <option key={topic.key} value={topic.key}>
+                  {topic.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="consult-symptom-layout">
+            <div>
+              <div className="consult-symptom-heading">
+                {currentTopic.label} Symptoms
+              </div>
+              <div className="symptom-chips symptom-chips-large">
+                {currentTopic.symptoms.map((symptom) => {
+                  const active = selectedSymptoms.includes(symptom);
+
+                  return (
+                    <button
+                      key={symptom}
+                      type="button"
+                      className={`sym-chip ${active ? "active" : ""}`}
+                      onClick={() => toggleSymptom(symptom)}
+                    >
+                      {symptom}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="consult-selected-panel">
+              <div className="consult-symptom-heading">Selected Symptoms</div>
+              <div className="consult-selected-wrap">
+                {selectedSymptoms.length ? (
+                  selectedSymptoms.map((symptom) => (
+                    <button
+                      key={symptom}
+                      type="button"
+                      className="consult-selected-chip"
+                      onClick={() => toggleSymptom(symptom)}
+                    >
+                      <span>{symptom}</span>
+                      <i className="bi bi-x-lg" />
+                    </button>
+                  ))
+                ) : (
+                  <div className="consult-empty">No symptoms selected yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="ui-card consult-card consult-card-elevated">
+          <div className="consult-card-head">
+            <div>
+              <div className="consult-title">Voice Capture</div>
+              <div className="consult-sub">
+                Record, process, and review the transcript in one clean workspace
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="consult-mode-toggle"
+            role="tablist"
+            aria-label="Voice capture mode"
+          >
+            {CAPTURE_MODES.map((mode) => (
+              <button
+                key={mode.key}
+                type="button"
+                className={`consult-mode-btn ${captureMode === mode.key ? "active" : ""}`}
+                onClick={() => setCaptureMode(mode.key)}
+                disabled={isRecording || isTranscribing}
+              >
+                <i
+                  className={`bi ${mode.key === "dictate" ? "bi-mic-fill" : "bi-people-fill"}`}
+                />
+                <span>{mode.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div
+            className={`consult-voice-workspace ${
+              showTranscriptPanel ? "has-transcript" : "full-recorder"
+            }`}
+          >
+            <div className="consult-recorder-panel">
+              <div className="consult-recorder-state">
+                <div className={`consult-recorder-badge ${captureMode}`}>
+                  {captureMode === "dictate"
+                    ? "Dictate Mode"
+                    : "Transcribe Mode"}
+                </div>
+
+                <div className="consult-transcript-note consult-voice-mode-note">
+                  {selectedCaptureMode.description}
+                </div>
+
+                <div className="consult-recorder-summary">
+                  {captureMode === "dictate"
+                    ? "Best for solo voice notes. Stop recording to generate editable English text."
+                    : "Best for longer consultations. Stop recording to generate the full conversation transcript."}
+                </div>
+
+                <div className="consult-voice-timer">
+                  {formatRecordingTime(recordingSeconds)}
+                </div>
+
+                <button
+                  className={`rec-mic-btn consult-record-btn ${isRecording && !isPaused ? "recording" : ""}`}
+                  type="button"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!recordingSupported || isTranscribing}
+                  aria-label={
+                    isRecording ? "Stop recording" : "Start recording"
+                  }
+                >
+                  <i
+                    className={`bi ${isRecording ? "bi-stop-fill" : "bi-mic-fill"}`}
+                  />
+                </button>
+
+                <div className="rec-hint">
+                  {isRecording
+                    ? isPaused
+                      ? "Recording paused"
+                      : captureMode === "dictate"
+                        ? "Dictation recording in progress"
+                        : "Conversation recording in progress"
+                    : captureMode === "dictate"
+                      ? "Tap to start a local clinician dictation"
+                      : "Tap to start a local consultation recording"}
+                </div>
+
+                <div className="rec-meta">
+                  {isRecording
+                    ? "You can pause, resume, or stop whenever needed."
+                    : isTranscribing
+                      ? "Your recording is being converted into text now."
+                      : "Audio is uploaded only after you stop, then discarded after transcription completes."}
+                </div>
+
+                <div className="consult-voice-actions">
+                  {isRecording ? (
+                    isPaused ? (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        type="button"
+                        onClick={resumeRecording}
+                      >
+                        <i className="bi bi-play-fill" />
+                        <span>Resume</span>
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-light btn-sm"
+                        type="button"
+                        onClick={pauseRecording}
+                      >
+                        <i className="bi bi-pause-fill" />
+                        <span>Pause</span>
+                      </button>
+                    )
+                  ) : null}
+
+                  <button
+                    className="btn btn-light btn-sm"
+                    type="button"
+                    onClick={stopRecording}
+                    disabled={!isRecording || isTranscribing}
+                  >
+                    <i className="bi bi-stop-fill" />
+                    <span>Stop</span>
+                  </button>
+
+                  <button
+                    className="btn btn-light btn-sm"
+                    type="button"
+                    onClick={startRecording}
+                    disabled={isRecording || !recordingSupported || isTranscribing}
+                  >
+                    <i className="bi bi-arrow-repeat" />
+                    <span>New Take</span>
+                  </button>
+                </div>
+
+                <div
+                  className={`consult-process-banner ${
+                    isTranscribing
+                      ? "loading"
+                      : isRecording
+                        ? "recording"
+                        : "idle"
+                  }`}
+                >
+                  <div className="consult-process-banner-head">
+                    <div className="consult-title consult-title-small">
+                      {isTranscribing
+                        ? "Transcribing"
+                        : isRecording
+                          ? "Recording Live"
+                          : "Recorder Ready"}
+                    </div>
+                    <span className="consult-processing-pill">
+                      {isTranscribing
+                        ? "Working"
+                        : isRecording
+                          ? "Live"
+                          : recordingSupported
+                            ? "Mic Ready"
+                            : "Unsupported"}
+                    </span>
+                  </div>
+
+                  {isTranscribing ? (
+                    <div className="consult-processing-state">
+                      <span className="consult-processing-spinner" />
+                      <div className="consult-processing-copy">
+                        <strong>
+                          {captureMode === "transcribe"
+                            ? "Processing conversation"
+                            : "Processing recording"}
+                        </strong>
+                        <span>
+                          {recordingStatus}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="consult-status-message">
+                      {recordingStatus}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {showTranscriptPanel ? (
+              <div className="consult-transcript-panel">
+                <div className="consult-recording-statushead">
+                  <div className="consult-transcript-headcopy">
+                    <div className="consult-title consult-title-small">
+                      {captureMode === "transcribe"
+                        ? "Conversation Transcript"
+                        : "Transcript"}
+                    </div>
+                    <div className="consult-transcript-note">
+                      {captureMode === "transcribe"
+                        ? "Review the complete conversation here, then refine anything before generating the note."
+                        : "Review the captured text here, then refine it before generating the note."}
+                    </div>
+                  </div>
+                  <span
+                    className={`consult-processing-pill ${
+                      isTranscribing ? "loading" : "ready"
+                    }`}
+                  >
+                    {isTranscribing ? "Transcribing" : "Ready"}
+                  </span>
+                </div>
+
+                <div className="consult-transcript-editor consult-transcript-editor-embedded">
+                  <div className="rec-transcript-title consult-transcript-sectiontitle">
+                    {captureMode === "transcribe"
+                      ? "Full Conversation"
+                      : "Consultation Text"}
+                  </div>
+                  <textarea
+                    className="rec-transcript-input"
+                    rows={captureMode === "transcribe" ? 18 : 14}
+                    value={transcript}
+                    onChange={(event) => setTranscript(event.target.value)}
+                    placeholder={
+                      captureMode === "transcribe"
+                        ? "The full conversation transcript will appear here after processing."
+                        : "Your captured transcript will appear here after processing."
+                    }
+                  />
+                  <div className="consult-transcript-note">
+                    Make any quick edits here before generating the final note.
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="ui-card consult-card consult-card-elevated">
+          <div className="consult-card-head">
+            <div>
+              <div className="consult-title">Doctor Note</div>
+              <div className="consult-sub">
+                Extra guidance for the generated note
+              </div>
+            </div>
+          </div>
+
+          <textarea
+            className="form-control consult-textarea"
+            rows={5}
+            value={doctorNote}
+            onChange={(event) => setDoctorNote(event.target.value)}
+            placeholder="Add any extra note or instruction for generation..."
+          />
+        </div>
+
+        <div className="consult-actions consult-actions-static">
+          <button
+            className="consult-generate-btn"
+            type="button"
+            onClick={generateNote}
+            disabled={isGenerating || isTranscribing}
+          >
+            {isGenerating ? (
+              <>
+                <span className="consult-btn-spinner" />
+                <span>Generating Note...</span>
+              </>
+            ) : (
+              <>
+                <span>Generate Note</span>
+                <i className="bi bi-arrow-right" />
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* ===================== Patient Modal ===================== */}
-      {showPatientModal &&
-        createPortal(
-          <div className="rmodal-overlay" onMouseDown={closePatientModal}>
-            <div className="rmodal-card" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="rmodal-header">
-                <div>
-                  <div className="rmodal-title">Patient Details</div>
-                  <div className="rmodal-sub">Fill details and save</div>
+      {showPatientModal
+        ? createPortal(
+            <div className="rmodal-overlay" onMouseDown={closePatientModal}>
+              <div
+                className="rmodal-card"
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <div className="rmodal-header">
+                  <div>
+                    <div className="rmodal-title">Patient Details</div>
+                    <div className="rmodal-sub">Fill details and save</div>
+                  </div>
+
+                  <button
+                    className="rmodal-x"
+                    type="button"
+                    onClick={closePatientModal}
+                  >
+                    x
+                  </button>
                 </div>
 
-                <button className="rmodal-x" type="button" onClick={closePatientModal}>
-                  ✕
-                </button>
-              </div>
+                <div className="rmodal-body">
+                  <div className="row g-3">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Name</label>
+                      <input
+                        className="form-control"
+                        value={patientForm.name}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            name: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
 
-              <div className="rmodal-body">
-                <div className="row g-3">
-                  <div className="col-12 col-md-6">
-                    <label className="form-label">Name</label>
-                    <input
-                      className="form-control"
-                      value={patientForm.name}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, name: e.target.value }))
-                      }
-                    />
-                  </div>
+                    <div className="col-6 col-md-3">
+                      <label className="form-label">Age</label>
+                      <input
+                        className="form-control"
+                        value={patientForm.age}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            age: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
 
-                  <div className="col-6 col-md-3">
-                    <label className="form-label">Age</label>
-                    <input
-                      className="form-control"
-                      value={patientForm.age}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, age: e.target.value }))
-                      }
-                    />
-                  </div>
+                    <div className="col-6 col-md-3">
+                      <label className="form-label">Gender</label>
+                      <select
+                        className="form-select"
+                        value={patientForm.gender}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            gender: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Select</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
 
-                  <div className="col-6 col-md-3">
-                    <label className="form-label">Gender</label>
-                    <select
-                      className="form-select"
-                      value={patientForm.gender}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, gender: e.target.value }))
-                      }
-                    >
-                      <option value="">Select</option>
-                      <option>Male</option>
-                      <option>Female</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Phone</label>
+                      <input
+                        className="form-control"
+                        value={patientForm.phone}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            phone: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
 
-                  <div className="col-12 col-md-6">
-                    <label className="form-label">Phone</label>
-                    <input
-                      className="form-control"
-                      value={patientForm.phone}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, phone: e.target.value }))
-                      }
-                    />
-                  </div>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">NIC / ID</label>
+                      <input
+                        className="form-control"
+                        value={patientForm.nic}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            nic: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
 
-                  <div className="col-12 col-md-6">
-                    <label className="form-label">NIC / ID</label>
-                    <input
-                      className="form-control"
-                      value={patientForm.nic}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, nic: e.target.value }))
-                      }
-                    />
-                  </div>
+                    <div className="col-12">
+                      <label className="form-label">Allergies</label>
+                      <input
+                        className="form-control"
+                        value={patientForm.allergies}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            allergies: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
 
-                  <div className="col-12">
-                    <label className="form-label">Allergies</label>
-                    <input
-                      className="form-control"
-                      value={patientForm.allergies}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, allergies: e.target.value }))
-                      }
-                    />
-                  </div>
-
-                  <div className="col-12">
-                    <label className="form-label">Notes</label>
-                    <textarea
-                      className="form-control"
-                      rows={3}
-                      value={patientForm.notes}
-                      onChange={(e) =>
-                        setPatientForm((p) => ({ ...p, notes: e.target.value }))
-                      }
-                    />
+                    <div className="col-12">
+                      <label className="form-label">Notes</label>
+                      <textarea
+                        className="form-control"
+                        rows={3}
+                        value={patientForm.notes}
+                        onChange={(event) =>
+                          setPatientForm((prev) => ({
+                            ...prev,
+                            notes: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="rmodal-footer">
-                <button className="btn btn-light" type="button" onClick={closePatientModal}>
-                  Cancel
-                </button>
-                <button className="btn btn-primary" type="button" onClick={savePatient}>
-                  Save Patient
-                </button>
+                <div className="rmodal-footer">
+                  <button
+                    className="btn btn-light"
+                    type="button"
+                    onClick={closePatientModal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={savePatient}
+                  >
+                    Save Patient
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
+            </div>,
+            document.body,
+          )
+        : null}
+    </div>
+  );
+}
+
+function PreferenceGroup({ label, options, value, onChange }) {
+  return (
+    <div className="consult-preference-group">
+      <label>{label}</label>
+      <div className="consult-pill-row">
+        {options.map((option) => (
+          <button
+            type="button"
+            key={option.key}
+            className={`consult-pill ${value === option.key ? "active" : ""}`}
+            onClick={() => onChange(option.key)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 
 import LandingPage from "./pages/public/LandingPage";
@@ -7,28 +7,20 @@ import Signup from "./pages/auth/Signup";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import Onboarding from "./pages/auth/Onboarding";
 
-import { getToken, getUser } from "./utils/authStorage";
+import { getToken } from "./utils/authStorage";
 
 function PrivateRoute({ children }) {
   const token = getToken();
-  const user = getUser();
-  const location = useLocation();
 
   if (!token) return <Navigate to="/" replace />;
-
-  if (!user?.onboarding_completed && location.pathname !== "/onboarding") {
-    return <Navigate to="/onboarding" replace />;
-  }
 
   return children;
 }
 
 function PublicRoute({ children }) {
   const token = getToken();
-  const user = getUser();
 
   if (!token) return children;
-  if (user && !user.onboarding_completed) return <Navigate to="/onboarding" replace />;
   return <Navigate to="/app" replace />;
 }
 
@@ -36,7 +28,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* âœ… Public landing */}
         <Route
           path="/"
           element={
@@ -46,7 +37,6 @@ export default function App() {
           }
         />
 
-        {/* âœ… Auth */}
         <Route
           path="/login"
           element={
@@ -72,7 +62,6 @@ export default function App() {
           }
         />
 
-        {/* âœ… After OTP: details page */}
         <Route
           path="/onboarding"
           element={
@@ -82,7 +71,6 @@ export default function App() {
           }
         />
 
-        {/* âœ… App */}
         <Route
           path="/app/*"
           element={
@@ -97,4 +85,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
