@@ -417,6 +417,14 @@ export default function ConsultationPage() {
     setRecordingSeconds(Math.max(0, Math.floor(getLiveRecordingMs() / 1000)));
   };
 
+  const resetRecorderTimeline = () => {
+    recordedChunksRef.current = [];
+    recordingPausedRef.current = false;
+    accumulatedRecordingMsRef.current = 0;
+    recordingStartedAtRef.current = null;
+    setRecordingSeconds(0);
+  };
+
   const startRecordingTicker = () => {
     stopRecordingTicker();
     recordingIntervalRef.current = window.setInterval(syncRecordingClock, 250);
@@ -775,6 +783,7 @@ export default function ConsultationPage() {
           ? "Conversation transcript ready. Review the full text on the right."
           : "Transcription complete. Review and edit the text on the right.",
       );
+      resetRecorderTimeline();
     } catch (error) {
       console.error("[voice][frontend] stopRecording failed", error);
       setRecordingStatus(
@@ -783,6 +792,7 @@ export default function ConsultationPage() {
           : error?.message ||
           "Recording was saved, but transcription failed. Please try again.",
       );
+      resetRecorderTimeline();
     } finally {
       setIsTranscribing(false);
       setIsRecording(false);
